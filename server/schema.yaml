@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: Virtual Pipe API
+  version: 0.1.0
+paths:
+  /pipesets:
+    post:
+      operationId: createPipeset
+      tags:
+      - pipesets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pipeset'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeset'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipesetValidationError'
+          description: ''
+components:
+  schemas:
+    Pipeset:
+      type: object
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+          minimum: 1
+        bbox:
+          type: array
+          items:
+            type: number
+            format: double
+          description: '[west, south, east, north]; longitude -180..180, latitude
+            -90..90; west < east and south < north.'
+          maxItems: 4
+          minItems: 4
+      required:
+      - bbox
+      - count
+      - name
+    PipesetValidationError:
+      type: object
+      properties:
+        name:
+          type: array
+          items:
+            type: string
+        count:
+          type: array
+          items:
+            type: string
+        bbox: {}
+        non_field_errors:
+          type: array
+          items:
+            type: string

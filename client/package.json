@@ -22,6 +22,7 @@
     "mapbox-gl": "^3.32.0",
     "terra-draw": "^1.37.0",
     "terra-draw-mapbox-gl-adapter": "^1.5.0",
+    "vee-validate": "^4.15.1",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
   },

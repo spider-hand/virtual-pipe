@@ -28,6 +28,7 @@ quote = '$(subst ','"'"',$(1))'
 .PHONY: dev down migrate migrate\:show
 .PHONY: client\:format client\:format\:check client\:lint client\:test
 .PHONY: server\:format server\:format\:check server\:lint server\:test
+.PHONY: server\:schema client\:api\:generate
 
 CLIENT_RUN = docker compose run --rm --no-deps -T client sh -c
 SERVER_RUN = docker compose run --rm --no-deps -T server uv run --locked
@@ -67,3 +68,10 @@ server\:lint:
 
 server\:test:
 	docker compose run --rm -T server uv run --locked pytest || { status=$$?; test "$$status" -eq 5 || exit "$$status"; }
+
+server\:schema:
+	$(SERVER_RUN) python manage.py spectacular --file schema.yaml --validate --fail-on-warn
+
+client\:api\:generate:
+	$(MAKE) server:schema
+	docker run --rm -v "$(CURDIR):/local" openapitools/openapi-generator-cli:v7.26.0 generate -i /local/server/schema.yaml -g typescript-fetch -o /local/client/src/services --global-property apis,models,apiDocs=false,modelDocs=false,apiTests=false,modelTests=false,supportingFiles=runtime.ts:index.ts --additional-properties=hideGenerationTimestamp=true

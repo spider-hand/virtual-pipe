@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-vue'
 import { ref } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
@@ -22,8 +22,11 @@ beforeEach(() => {
   drawing.isMapReady.value = true
   drawing.isDrawing.value = false
   drawing.hasBbox.value = false
+  drawing.bbox.value = null
   vi.mocked(useDrawing).mockReturnValue(drawing)
 })
+
+afterEach(() => vi.restoreAllMocks())
 
 describe('AppSidebar', () => {
   it('should allow entering a pipeset name', async () => {
@@ -48,6 +51,23 @@ describe('AppSidebar', () => {
     await input.fill('25')
 
     await expect.element(input).toHaveValue(25)
+  })
+
+  it('should submit the name, count and selected bbox', async () => {
+    const payload = { name: 'Tokyo pipes', count: 25, bbox: [139, 35, 140, 36] }
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(payload))
+    drawing.bbox.value = [139, 35, 140, 36]
+    const screen = await render(AppSidebar)
+
+    await screen.getByRole('textbox', { name: 'Pipeset name' }).fill('  Tokyo pipes  ')
+    await screen.getByRole('spinbutton', { name: 'Pipe count' }).fill('25')
+    await screen.getByRole('button', { name: 'Submit pipeset' }).click()
+
+    await expect.poll(() => fetch.mock.calls.length).toBe(1)
+    expect(fetch).toHaveBeenCalledWith(
+      '/pipesets',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(payload) }),
+    )
   })
 
   it('should disable drawing until the map is ready', async () => {
