@@ -4,10 +4,10 @@ import { onUnmounted, ref } from 'vue'
 import { ResponseError } from '@/services'
 import { PencilSparkles } from '@lucide/vue'
 import { useDrawing } from '@/composables/useDrawing'
-import { usePipesetAPI } from '@/composables/usePipesetAPI'
+import { usePipeset } from '@/composables/usePipeset'
 
 const { isMapReady, hasBbox, isDrawing, bbox, startDrawing, resetBbox } = useDrawing()
-const { createPipeset, getPipeset } = usePipesetAPI()
+const { pipesetId: selectedPipesetId, createPipeset, getPipeset } = usePipeset()
 const isSubmitting = ref(false)
 let pollingTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
@@ -27,8 +27,10 @@ const schedulePoll = (pipesetId: number) => {
         schedulePoll(pipesetId)
         return
       }
-      if (pipeset.status === 'completed') console.log('Pipeset generation completed.', pipeset.id)
-      else console.error('Pipeset generation failed.', pipeset.id)
+      if (pipeset.status === 'completed') {
+        console.log('Pipeset generation completed.', pipeset.id)
+        selectedPipesetId.value = pipeset.id
+      } else console.error('Pipeset generation failed.', pipeset.id)
     } catch (error) {
       if (!disposed) {
         if (error instanceof ResponseError) console.error(await error.response.text())

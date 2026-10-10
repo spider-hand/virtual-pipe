@@ -29,6 +29,7 @@ quote = '$(subst ','"'"',$(1))'
 .PHONY: client\:format client\:format\:check client\:lint client\:test
 .PHONY: server\:format server\:format\:check server\:lint server\:test
 .PHONY: server\:schema client\:api\:generate
+.PHONY: osm\:download osm\:import
 
 CLIENT_RUN = docker compose run --rm --no-deps -T client sh -c
 SERVER_RUN = docker compose run --rm --no-deps -T server uv run --locked
@@ -38,6 +39,14 @@ dev:
 
 down:
 	docker compose down
+
+osm\:download:
+	docker compose run --rm --no-deps osm sh -ec 'file=kanto-latest.osm.pbf; if [ ! -f "$$file" ]; then curl --fail --location --retry 3 --output "$$file.part" "https://download.geofabrik.de/asia/japan/$$file"; mv "$$file.part" "$$file"; fi'
+
+osm\:import:
+	docker compose build osm
+	docker compose run --rm --no-deps osm osmium tags-filter /data/kanto-latest.osm.pbf w/highway --overwrite --output /data/kanto-roads.osm.pbf
+	docker compose run --rm osm osm2pgsql --create --slim --drop --cache 512 --number-processes 2 --output flex --style /config/roads.lua /data/kanto-roads.osm.pbf
 
 migrate:
 	docker compose run --rm server uv run --locked python manage.py migrate $(foreach arg,$(MIGRATION_ARGS),$(call quote,$(arg)))

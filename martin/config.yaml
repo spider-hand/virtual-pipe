@@ -1,0 +1,8 @@
+cache_size_mb: 0
+postgres:
+  connection_string: ${POSTGRES_CONNECTION_STRING}
+  auto_publish: false
+  functions:
+    pipes:
+      schema: public
+      function: pipes_tile

@@ -5,6 +5,7 @@ services:
     init: true
     environment:
       API_PROXY_TARGET: http://server:8000
+      MARTIN_PROXY_TARGET: http://martin:3000
     command: >-
       sh -c "corepack pnpm install --frozen-lockfile &&
       exec corepack pnpm run dev --host 0.0.0.0 --port 5173 --strictPort"
@@ -64,6 +65,34 @@ services:
       interval: 2s
       timeout: 5s
       retries: 30
+
+  martin:
+    image: ghcr.io/maplibre/martin:1.16.1
+    command: --config /config/config.yaml
+    environment:
+      POSTGRES_CONNECTION_STRING: postgres://virtual_pipe:virtual_pipe@db:5432/virtual_pipe
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./martin:/config:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  osm:
+    build: ./osm
+    profiles: [tools]
+    environment:
+      PGHOST: db
+      PGDATABASE: virtual_pipe
+      PGUSER: virtual_pipe
+      PGPASSWORD: virtual_pipe
+    volumes:
+      - ./osm/data:/data
+      - ./osm/roads.lua:/config/roads.lua:ro
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: virtual-pipe-db

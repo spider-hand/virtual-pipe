@@ -6,10 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
+  plugins: [vue(), vueDevTools()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -20,6 +17,11 @@ export default defineConfig({
       '/pipesets': {
         target: process.env.API_PROXY_TARGET ?? 'http://localhost:8000',
         changeOrigin: true,
+      },
+      '/tiles': {
+        target: process.env.MARTIN_PROXY_TARGET ?? 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/tiles/, ''),
       },
     },
   },
