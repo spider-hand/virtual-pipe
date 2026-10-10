@@ -26,6 +26,6 @@ onUnmounted(() => {
 <style scoped>
 .map {
   width: 100%;
-  height: 100dvh;
+  height: 100%;
 }
 </style>
