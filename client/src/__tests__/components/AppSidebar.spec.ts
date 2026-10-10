@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import { useDrawing } from '@/composables/useDrawing'
 
-vi.mock('@/composables/useDrawing', () => ({ useDrawing: vi.fn() }))
+vi.mock('@/composables/useDrawing', () => ({ useDrawing: vi.fn<typeof useDrawing>() }))
 
 enableAutoUnmount(afterEach)
 
@@ -12,10 +12,10 @@ const drawing = {
   isMapReady: ref(true),
   isDrawing: ref(false),
   hasBbox: ref(false),
-  initializeDrawing: vi.fn(),
-  disposeDrawing: vi.fn(),
-  startDrawing: vi.fn(),
-  resetBbox: vi.fn(),
+  initializeDrawing: vi.fn<ReturnType<typeof useDrawing>['initializeDrawing']>(),
+  disposeDrawing: vi.fn<ReturnType<typeof useDrawing>['disposeDrawing']>(),
+  startDrawing: vi.fn<ReturnType<typeof useDrawing>['startDrawing']>(),
+  resetBbox: vi.fn<ReturnType<typeof useDrawing>['resetBbox']>(),
 }
 
 beforeEach(() => {

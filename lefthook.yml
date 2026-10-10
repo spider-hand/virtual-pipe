@@ -1,0 +1,16 @@
+lefthook: pnpm --dir client exec lefthook
+
+pre-commit:
+  commands:
+    client-format:
+      run: make client:format:check
+    client-lint:
+      run: make client:lint
+    client-test:
+      run: make client:test
+    server-format:
+      run: make server:format:check
+    server-lint:
+      run: make server:lint
+    server-test:
+      run: make server:test

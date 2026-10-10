@@ -12,9 +12,10 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",
-    "lint:oxlint": "oxlint . --fix",
-    "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "lint:oxlint": "oxlint .",
+    "lint:eslint": "eslint . --cache",
+    "format": "prettier --write --experimental-cli src/",
+    "format:check": "prettier --check --experimental-cli src/"
   },
   "dependencies": {
     "@lucide/vue": "^1.54.0",
@@ -39,6 +40,7 @@
     "eslint-plugin-vue": "~10.11.0",
     "jiti": "^2.7.0",
     "jsdom": "^30.0.1",
+    "lefthook": "^2.2.1",
     "npm-run-all2": "^9.0.3",
     "oxlint": "~1.82.0",
     "prettier": "3.9.6",
@@ -48,6 +50,9 @@
     "vitest": "^4.1.11",
     "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "^3.3.11"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["lefthook"]
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"

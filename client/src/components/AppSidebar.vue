@@ -12,11 +12,7 @@ const handleClick = () => {
 
 <template>
   <aside class="sidebar">
-    <button
-      type="button"
-      :disabled="!isMapReady"
-      @click="handleClick"
-    >
+    <button type="button" :disabled="!isMapReady" @click="handleClick">
       <PencilSparkles aria-hidden="true" />
       {{ isDrawing ? 'Cancel drawing' : hasBbox ? 'Reset bbox' : 'Start drawing' }}
     </button>

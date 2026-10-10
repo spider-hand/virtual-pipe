@@ -9,7 +9,7 @@ MIGRATION_ARGS := $(wordlist 2,3,$(MAKECMDGOALS))
 ifneq ($(word 4,$(MAKECMDGOALS)),)
 $(error Usage: make migrate [app [migration]])
 endif
-ifneq ($(filter dev down migrate migrate:show,$(MIGRATION_ARGS)),)
+ifneq ($(filter dev down migrate migrate:show client:% server:%,$(MIGRATION_ARGS)),)
 $(error Do not combine migration arguments with other commands)
 endif
 .PHONY: $(MIGRATION_ARGS)
@@ -26,6 +26,11 @@ endif
 quote = '$(subst ','"'"',$(1))'
 
 .PHONY: dev down migrate migrate\:show
+.PHONY: client\:format client\:format\:check client\:lint client\:test
+.PHONY: server\:format server\:format\:check server\:lint server\:test
+
+CLIENT_RUN = docker compose run --rm --no-deps -T client sh -c
+SERVER_RUN = docker compose run --rm --no-deps -T server uv run --locked
 
 dev:
 	docker compose up
@@ -38,3 +43,27 @@ migrate:
 
 migrate\:show:
 	docker compose run --rm server uv run --locked python manage.py showmigrations
+
+client\:format:
+	$(CLIENT_RUN) 'corepack pnpm install --frozen-lockfile && corepack pnpm format'
+
+client\:format\:check:
+	$(CLIENT_RUN) 'corepack pnpm install --frozen-lockfile && corepack pnpm format:check'
+
+client\:lint:
+	$(CLIENT_RUN) 'corepack pnpm install --frozen-lockfile && corepack pnpm lint'
+
+client\:test:
+	$(CLIENT_RUN) 'corepack pnpm install --frozen-lockfile && corepack pnpm test:unit --run'
+
+server\:format:
+	$(SERVER_RUN) ruff format .
+
+server\:format\:check:
+	$(SERVER_RUN) ruff format --check .
+
+server\:lint:
+	$(SERVER_RUN) ruff check .
+
+server\:test:
+	docker compose run --rm -T server uv run --locked pytest || { status=$$?; test "$$status" -eq 5 || exit "$$status"; }
