@@ -1,0 +1,53 @@
+services:
+  client:
+    image: node:24-bookworm-slim
+    working_dir: /app
+    init: true
+    command: >-
+      sh -c "corepack pnpm install --frozen-lockfile &&
+      exec corepack pnpm run dev --host 0.0.0.0 --port 5173 --strictPort"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./client:/app
+      - client_node_modules:/app/node_modules
+      - client_pnpm_store:/app/.pnpm-store
+
+  server:
+    image: ghcr.io/astral-sh/uv:python3.13-trixie-slim
+    working_dir: /app
+    init: true
+    environment:
+      UV_PROJECT_ENVIRONMENT: /opt/venv
+      POSTGRES_HOST: db
+    command: uv run --locked python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./server:/app
+      - server_venv:/opt/venv
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: virtual_pipe
+      POSTGRES_USER: virtual_pipe
+      POSTGRES_PASSWORD: virtual_pipe
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virtual_pipe -d virtual_pipe"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  client_node_modules:
+  client_pnpm_store:
+  server_venv:
+  postgres_data:
