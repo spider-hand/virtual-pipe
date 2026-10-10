@@ -1,11 +1,12 @@
-import { readonly, ref } from 'vue'
+import { computed, readonly, ref } from 'vue'
 import type { Map } from 'mapbox-gl/esm'
 import { TerraDraw, TerraDrawRectangleMode } from 'terra-draw'
 import { TerraDrawMapboxGLAdapter } from 'terra-draw-mapbox-gl-adapter'
 
 const isMapReady = ref(false)
 const isDrawing = ref(false)
-const hasBbox = ref(false)
+const bbox = ref<[number, number, number, number] | null>(null)
+const hasBbox = computed(() => bbox.value !== null)
 let draw: TerraDraw | undefined
 
 const initializeDrawing = (map: Map) => {
@@ -25,17 +26,15 @@ const initializeDrawing = (map: Map) => {
     const coordinates: number[][] = feature.geometry.coordinates[0]!
     const longitudes = coordinates.map(([longitude]) => longitude!)
     const latitudes = coordinates.map(([, latitude]) => latitude!)
-    const bbox = [
+    bbox.value = [
       Math.min(...longitudes),
       Math.min(...latitudes),
       Math.max(...longitudes),
       Math.max(...latitudes),
     ]
 
-    console.log(bbox)
     drawing.setMode('static')
     isDrawing.value = false
-    hasBbox.value = true
   })
 
   drawing.start()
@@ -46,7 +45,7 @@ const disposeDrawing = () => {
   draw = undefined
   isMapReady.value = false
   isDrawing.value = false
-  hasBbox.value = false
+  bbox.value = null
 }
 
 const resetBbox = () => {
@@ -55,7 +54,7 @@ const resetBbox = () => {
   draw.setMode('static')
   draw.clear()
   isDrawing.value = false
-  hasBbox.value = false
+  bbox.value = null
 }
 
 const startDrawing = () => {
@@ -71,6 +70,7 @@ export const useDrawing = () => {
     isMapReady: readonly(isMapReady),
     isDrawing: readonly(isDrawing),
     hasBbox: readonly(hasBbox),
+    bbox: readonly(bbox),
     initializeDrawing,
     disposeDrawing,
     startDrawing,

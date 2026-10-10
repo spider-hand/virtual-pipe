@@ -54,7 +54,7 @@ client\:lint:
 	$(CLIENT_RUN) 'corepack pnpm install --frozen-lockfile && corepack pnpm lint'
 
 client\:test:
-	$(CLIENT_RUN) 'corepack pnpm install --frozen-lockfile && corepack pnpm test:unit --run'
+	$(CLIENT_RUN) 'export PLAYWRIGHT_BROWSERS_PATH=/app/node_modules/.cache/ms-playwright && corepack pnpm install --frozen-lockfile && corepack pnpm exec playwright install --with-deps --only-shell chromium && corepack pnpm test:unit --run'
 
 server\:format:
 	$(SERVER_RUN) ruff format .
