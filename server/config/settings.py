@@ -51,6 +51,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Virtual Pipe API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {"PipesetStatus": "pipesets.models.Pipeset.Status"},
 }
 
 MIDDLEWARE = [
@@ -64,6 +65,9 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
+CELERY_TASK_IGNORE_RESULT = True
 
 TEMPLATES = [
     {

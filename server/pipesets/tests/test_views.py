@@ -1,5 +1,17 @@
+from unittest.mock import patch
+
 import pytest
 from rest_framework.test import APIClient
+
+from pipesets.models import Pipeset
+
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def enqueue():
+    with patch("pipesets.views.generate_pipes.delay") as job:
+        yield job
 
 
 @pytest.fixture
@@ -12,11 +24,25 @@ def payload():
     return {"name": "Tokyo pipes", "count": 25, "bbox": [139, 35, 140, 36]}
 
 
-def test_returns_validated_pipeset(client, payload):
-    response = client.post("/pipesets", payload, format="json")
+def test_returns_validated_pipeset(
+    client, payload, enqueue, django_capture_on_commit_callbacks
+):
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post("/pipesets", payload, format="json")
 
-    assert response.status_code == 200
-    assert response.json() == payload
+    assert response.status_code == 202
+    assert response.json() == {
+        **payload,
+        "id": response.json()["id"],
+        "status": "pending",
+    }
+
+    pipeset = Pipeset.objects.get(pk=response.json()["id"])
+    assert pipeset.name == payload["name"]
+    assert pipeset.count == payload["count"]
+    assert pipeset.bbox == payload["bbox"]
+    assert pipeset.status == "pending"
+    enqueue.assert_called_once_with(pipeset.pk)
 
 
 def test_trims_name(client, payload):
@@ -24,7 +50,7 @@ def test_trims_name(client, payload):
 
     response = client.post("/pipesets", payload, format="json")
 
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert response.json()["name"] == "Tokyo pipes"
 
 
@@ -84,5 +110,32 @@ def test_accepts_coordinate_boundaries_and_count_one(client, payload):
 
     response = client.post("/pipesets", payload, format="json")
 
+    assert response.status_code == 202
+    assert response.json() == {
+        **payload,
+        "id": response.json()["id"],
+        "status": "pending",
+    }
+
+
+@pytest.mark.parametrize("status", ["pending", "failed", "completed"])
+def test_gets_pipeset(client, payload, status):
+    pipeset = Pipeset.objects.create(**payload, status=status)
+    response = client.get(f"/pipesets/{pipeset.pk}")
     assert response.status_code == 200
-    assert response.json() == payload
+    assert response.json() == {**payload, "id": pipeset.pk, "status": status}
+
+
+def test_returns_not_found(client):
+    response = client.get("/pipesets/999999")
+    assert response.status_code == 404
+    assert "detail" in response.json()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_marks_failed_when_enqueue_fails(client, payload, enqueue):
+    enqueue.side_effect = RuntimeError("Broker unavailable")
+    response = client.post("/pipesets", payload, format="json")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Failed to enqueue pipeset generation."}
+    assert Pipeset.objects.get().status == "failed"

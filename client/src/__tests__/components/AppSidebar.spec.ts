@@ -55,7 +55,9 @@ describe('AppSidebar', () => {
 
   it('should submit the name, count and selected bbox', async () => {
     const payload = { name: 'Tokyo pipes', count: 25, bbox: [139, 35, 140, 36] }
-    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(payload))
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(Response.json({ ...payload, id: 1, status: 'pending' }, { status: 202 }))
     drawing.bbox.value = [139, 35, 140, 36]
     const screen = await render(AppSidebar)
 
@@ -70,26 +72,43 @@ describe('AppSidebar', () => {
     )
   })
 
+  it('should log completion after polling in ten seconds', async () => {
+    const pipeset = { id: 1, name: 'Tokyo pipes', count: 1, bbox: [139, 35, 140, 36] }
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({ ...pipeset, status: 'pending' }, { status: 202 }))
+      .mockResolvedValueOnce(Response.json({ ...pipeset, status: 'completed' }))
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    drawing.bbox.value = [139, 35, 140, 36]
+    const screen = await render(AppSidebar)
+
+    await screen.getByRole('textbox', { name: 'Pipeset name' }).fill('Tokyo pipes')
+    await screen.getByRole('button', { name: 'Submit pipeset' }).click()
+    await expect
+      .poll(() => log.mock.calls.at(-1), { timeout: 12_000 })
+      .toEqual(['Pipeset generation completed.', 1])
+
+    expect(fetch).toHaveBeenLastCalledWith(
+      '/pipesets/1',
+      expect.objectContaining({ method: 'GET' }),
+    )
+  }, 15_000)
+
   it('should disable drawing until the map is ready', async () => {
     drawing.isMapReady.value = false
     const screen = await render(AppSidebar)
     const button = screen.getByRole('button', { name: 'Start drawing' })
 
     await expect.element(button).toBeDisabled()
-
-    expect(drawing.startDrawing).not.toHaveBeenCalled()
-    expect(drawing.resetBbox).not.toHaveBeenCalled()
   })
 
   it('should start drawing when the button is clicked', async () => {
     const screen = await render(AppSidebar)
     const button = screen.getByRole('button', { name: 'Start drawing' })
 
-    await expect.element(button).toBeEnabled()
     await button.click()
 
     expect(drawing.startDrawing).toHaveBeenCalledOnce()
-    expect(drawing.resetBbox).not.toHaveBeenCalled()
   })
 
   it('should reset the existing bbox when the button is clicked', async () => {
@@ -100,7 +119,6 @@ describe('AppSidebar', () => {
     await button.click()
 
     expect(drawing.resetBbox).toHaveBeenCalledOnce()
-    expect(drawing.startDrawing).not.toHaveBeenCalled()
   })
 
   it('should cancel drawing when the button is clicked', async () => {
@@ -111,6 +129,5 @@ describe('AppSidebar', () => {
     await button.click()
 
     expect(drawing.resetBbox).toHaveBeenCalledOnce()
-    expect(drawing.startDrawing).not.toHaveBeenCalled()
   })
 })

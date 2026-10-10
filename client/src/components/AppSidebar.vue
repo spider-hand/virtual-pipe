@@ -1,12 +1,43 @@
 <script setup lang="ts">
 import { useForm } from 'vee-validate'
+import { onUnmounted, ref } from 'vue'
 import { ResponseError } from '@/services'
 import { PencilSparkles } from '@lucide/vue'
 import { useDrawing } from '@/composables/useDrawing'
 import { usePipesetAPI } from '@/composables/usePipesetAPI'
 
 const { isMapReady, hasBbox, isDrawing, bbox, startDrawing, resetBbox } = useDrawing()
-const { createPipeset } = usePipesetAPI()
+const { createPipeset, getPipeset } = usePipesetAPI()
+const isSubmitting = ref(false)
+let pollingTimer: ReturnType<typeof setTimeout> | undefined
+let disposed = false
+
+onUnmounted(() => {
+  disposed = true
+  clearTimeout(pollingTimer)
+})
+
+const schedulePoll = (pipesetId: number) => {
+  if (disposed) return
+  pollingTimer = setTimeout(async () => {
+    try {
+      const pipeset = await getPipeset(pipesetId)
+      if (disposed) return
+      if (pipeset.status === 'pending') {
+        schedulePoll(pipesetId)
+        return
+      }
+      if (pipeset.status === 'completed') console.log('Pipeset generation completed.', pipeset.id)
+      else console.error('Pipeset generation failed.', pipeset.id)
+    } catch (error) {
+      if (!disposed) {
+        if (error instanceof ResponseError) console.error(await error.response.text())
+        else console.error(error)
+      }
+    }
+    if (!disposed) isSubmitting.value = false
+  }, 10_000)
+}
 
 type PipesetForm = {
   name: string
@@ -44,17 +75,20 @@ const [count] = defineField('count')
 
 const submitForm = handleSubmit(
   async (values) => {
+    if (isSubmitting.value || disposed) return
+    isSubmitting.value = true
     try {
-      return await createPipeset({
+      const pipeset = await createPipeset({
         name: values.name.trim(),
         count: Number(values.count),
         bbox: values.bbox!,
       })
+      schedulePoll(pipeset.id)
     } catch (error) {
-      if (error instanceof ResponseError) {
-        console.error(await error.response.text())
-      } else {
-        console.error(error)
+      if (!disposed) {
+        if (error instanceof ResponseError) console.error(await error.response.text())
+        else console.error(error)
+        isSubmitting.value = false
       }
     }
   },
@@ -83,7 +117,7 @@ const handleClick = () => {
         <label for="pipe-count">Pipe count</label>
         <input id="pipe-count" v-model.number="count" type="number" min="1" step="1" />
       </div>
-      <button type="submit">Submit pipeset</button>
+      <button type="submit" :disabled="isSubmitting">Submit pipeset</button>
     </form>
     <button type="button" :disabled="!isMapReady" @click="handleClick">
       <PencilSparkles aria-hidden="true" />

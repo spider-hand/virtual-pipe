@@ -14,10 +14,20 @@
 
 import * as runtime from '../runtime';
 import {
+    type ErrorResponse,
+    ErrorResponseFromJSON,
+    ErrorResponseToJSON,
+} from '../models/ErrorResponse';
+import {
     type Pipeset,
     PipesetFromJSON,
     PipesetToJSON,
 } from '../models/Pipeset';
+import {
+    type PipesetResponse,
+    PipesetResponseFromJSON,
+    PipesetResponseToJSON,
+} from '../models/PipesetResponse';
 import {
     type PipesetValidationError,
     PipesetValidationErrorFromJSON,
@@ -29,6 +39,13 @@ export interface CreatePipesetRequest {
      * 
      */
     pipeset: Pipeset;
+}
+
+export interface GetPipesetRequest {
+    /**
+     * 
+     */
+    pipesetId: number;
 }
 
 /**
@@ -67,17 +84,60 @@ export class PipesetsApi extends runtime.BaseAPI {
 
     /**
      */
-    async createPipesetRaw(requestParameters: CreatePipesetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Pipeset>> {
+    async createPipesetRaw(requestParameters: CreatePipesetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PipesetResponse>> {
         const requestOptions = await this.createPipesetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PipesetFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PipesetResponseFromJSON(jsonValue));
     }
 
     /**
      */
-    async createPipeset(requestParameters: CreatePipesetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Pipeset> {
+    async createPipeset(requestParameters: CreatePipesetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PipesetResponse> {
         const response = await this.createPipesetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPipeset without sending the request
+     */
+    async getPipesetRequestOpts(requestParameters: GetPipesetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['pipesetId'] == null) {
+            throw new runtime.RequiredError(
+                'pipesetId',
+                'Required parameter "pipesetId" was null or undefined when calling getPipeset().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/pipesets/{pipeset_id}`;
+        urlPath = urlPath.replace('{pipeset_id}', encodeURIComponent(String(requestParameters['pipesetId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async getPipesetRaw(requestParameters: GetPipesetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PipesetResponse>> {
+        const requestOptions = await this.getPipesetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PipesetResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPipeset(requestParameters: GetPipesetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PipesetResponse> {
+        const response = await this.getPipesetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

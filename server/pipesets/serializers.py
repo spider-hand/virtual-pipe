@@ -2,6 +2,8 @@ import math
 
 from rest_framework import serializers
 
+from .models import Pipeset
+
 
 class PipesetSerializer(serializers.Serializer):
     name = serializers.CharField()
@@ -27,6 +29,19 @@ class PipesetSerializer(serializers.Serializer):
                 "West must be less than east and south less than north."
             )
         return value
+
+
+class PipesetResponseSerializer(serializers.ModelSerializer):
+    bbox = serializers.ListField(child=serializers.FloatField(), read_only=True)
+
+    class Meta:
+        model = Pipeset
+        fields = ("id", "name", "count", "bbox", "status")
+        read_only_fields = fields
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
 
 
 class PipesetValidationErrorSerializer(serializers.Serializer):

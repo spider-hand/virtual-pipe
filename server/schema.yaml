@@ -17,11 +17,11 @@ paths:
       security:
       - {}
       responses:
-        '200':
+        '202':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pipeset'
+                $ref: '#/components/schemas/PipesetResponse'
           description: ''
         '400':
           content:
@@ -29,8 +29,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/PipesetValidationError'
           description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /pipesets/{pipeset_id}:
+    get:
+      operationId: getPipeset
+      parameters:
+      - in: path
+        name: pipeset_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - pipesets
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipesetResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
 components:
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     Pipeset:
       type: object
       properties:
@@ -52,6 +91,44 @@ components:
       - bbox
       - count
       - name
+    PipesetResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        count:
+          type: integer
+          readOnly: true
+        bbox:
+          type: array
+          items:
+            type: number
+            format: double
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PipesetStatus'
+          readOnly: true
+      required:
+      - bbox
+      - count
+      - id
+      - name
+      - status
+    PipesetStatus:
+      enum:
+      - pending
+      - failed
+      - completed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `failed` - Failed
+        * `completed` - Completed
     PipesetValidationError:
       type: object
       properties:
