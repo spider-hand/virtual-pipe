@@ -1,4 +1,4 @@
-from django.db import models
+from django.contrib.gis.db import models
 
 
 class Pipeset(models.Model):
@@ -11,3 +11,9 @@ class Pipeset(models.Model):
     count = models.PositiveBigIntegerField()
     bbox = models.JSONField()
     status = models.CharField(max_length=9, choices=Status, default=Status.PENDING)
+
+
+class Pipe(models.Model):
+    geometry = models.LineStringField(srid=4326, dim=2)
+    pipeset = models.ForeignKey(Pipeset, on_delete=models.CASCADE, related_name="pipes")
+    attributes = models.JSONField(default=dict, blank=True)

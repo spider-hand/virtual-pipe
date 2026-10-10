@@ -16,7 +16,8 @@ services:
       - client_pnpm_store:/app/.pnpm-store
 
   server:
-    image: ghcr.io/astral-sh/uv:python3.13-trixie-slim
+    image: virtual-pipe-server
+    build: ./server
     working_dir: /app
     init: true
     environment:
@@ -36,7 +37,8 @@ services:
         condition: service_healthy
 
   worker:
-    image: ghcr.io/astral-sh/uv:python3.13-trixie-slim
+    image: virtual-pipe-server
+    build: ./server
     working_dir: /app
     init: true
     environment:
@@ -64,7 +66,8 @@ services:
       retries: 30
 
   db:
-    image: postgres:18
+    image: virtual-pipe-db
+    build: ./db
     environment:
       POSTGRES_DB: virtual_pipe
       POSTGRES_USER: virtual_pipe
