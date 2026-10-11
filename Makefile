@@ -30,7 +30,7 @@ quote = '$(subst ','"'"',$(1))'
 .PHONY: server\:format server\:format\:check server\:lint server\:test
 .PHONY: server\:schema client\:api\:generate
 .PHONY: osm\:download osm\:import
-.PHONY: db\:clean
+.PHONY: db\:clean db\:functions
 
 CLIENT_RUN = docker compose run --rm --no-deps -T client sh -c
 SERVER_RUN = docker compose run --rm --no-deps -T server uv run --locked
@@ -43,6 +43,10 @@ down:
 
 db\:clean:
 	docker compose exec -T db psql -U virtual_pipe -d virtual_pipe -v ON_ERROR_STOP=1 -c 'TRUNCATE TABLE pipesets_pipe, pipesets_pipeset RESTART IDENTITY;'
+
+db\:functions:
+	docker compose exec -T db psql -U virtual_pipe -d virtual_pipe -v ON_ERROR_STOP=1 < db/functions/pipes_data.sql
+	docker compose exec -T db psql -U virtual_pipe -d virtual_pipe -v ON_ERROR_STOP=1 < db/functions/pipes_mvt.sql
 
 osm\:download:
 	docker compose run --rm --no-deps osm sh -ec 'file=kanto-latest.osm.pbf; if [ ! -f "$$file" ]; then curl --fail --location --retry 3 --output "$$file.part" "https://download.geofabrik.de/asia/japan/$$file"; mv "$$file.part" "$$file"; fi'

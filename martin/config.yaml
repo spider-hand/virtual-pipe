@@ -5,4 +5,4 @@ postgres:
   functions:
     pipes:
       schema: public
-      function: pipes_tile
+      function: pipes_mvt
