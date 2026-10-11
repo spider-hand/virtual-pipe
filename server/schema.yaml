@@ -75,9 +75,6 @@ components:
       properties:
         name:
           type: string
-        count:
-          type: integer
-          minimum: 1
         bbox:
           type: array
           items:
@@ -89,7 +86,6 @@ components:
           minItems: 4
       required:
       - bbox
-      - count
       - name
     PipesetResponse:
       type: object
@@ -102,6 +98,7 @@ components:
           readOnly: true
         count:
           type: integer
+          minimum: 0
           readOnly: true
         bbox:
           type: array
@@ -133,10 +130,6 @@ components:
       type: object
       properties:
         name:
-          type: array
-          items:
-            type: string
-        count:
           type: array
           items:
             type: string

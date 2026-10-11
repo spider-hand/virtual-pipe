@@ -9,6 +9,7 @@ import { usePipeset } from '@/composables/usePipeset'
 const { isMapReady, hasBbox, isDrawing, bbox, startDrawing, resetBbox } = useDrawing()
 const { pipesetId: selectedPipesetId, createPipeset, getPipeset } = usePipeset()
 const isSubmitting = ref(false)
+const pipeCount = ref<number>()
 let pollingTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
 
@@ -30,6 +31,7 @@ const schedulePoll = (pipesetId: number) => {
       if (pipeset.status === 'completed') {
         console.log('Pipeset generation completed.', pipeset.id)
         selectedPipesetId.value = pipeset.id
+        pipeCount.value = pipeset.count
       } else console.error('Pipeset generation failed.', pipeset.id)
     } catch (error) {
       if (!disposed) {
@@ -43,18 +45,14 @@ const schedulePoll = (pipesetId: number) => {
 
 type PipesetForm = {
   name: string
-  count: number | ''
   bbox: number[] | null
 }
 
 const { defineField, handleSubmit, setFieldValue } = useForm<PipesetForm>({
-  initialValues: { name: '', count: 1, bbox: null },
+  initialValues: { name: '', bbox: null },
   validationSchema: {
     name: (value: unknown) =>
       (typeof value === 'string' && value.trim().length > 0) || 'Name is required.',
-    count: (value: unknown) =>
-      (typeof value === 'number' && Number.isInteger(value) && value >= 1) ||
-      'Count must be an integer greater than or equal to 1.',
     bbox: (value: unknown) => {
       if (!Array.isArray(value) || value.length !== 4 || !value.every(Number.isFinite)) {
         return 'Select a bbox with four finite coordinates.'
@@ -73,7 +71,6 @@ const { defineField, handleSubmit, setFieldValue } = useForm<PipesetForm>({
   },
 })
 const [name] = defineField('name')
-const [count] = defineField('count')
 
 const submitForm = handleSubmit(
   async (values) => {
@@ -82,7 +79,6 @@ const submitForm = handleSubmit(
     try {
       const pipeset = await createPipeset({
         name: values.name.trim(),
-        count: Number(values.count),
         bbox: values.bbox!,
       })
       schedulePoll(pipeset.id)
@@ -115,12 +111,9 @@ const handleClick = () => {
         <label for="pipeset-name">Pipeset name</label>
         <input id="pipeset-name" v-model="name" type="text" />
       </div>
-      <div>
-        <label for="pipe-count">Pipe count</label>
-        <input id="pipe-count" v-model.number="count" type="number" min="1" step="1" />
-      </div>
       <button type="submit" :disabled="isSubmitting">Submit pipeset</button>
     </form>
+    <div v-if="pipeCount !== undefined">Pipe count: {{ pipeCount }}</div>
     <button type="button" :disabled="!isMapReady" @click="handleClick">
       <PencilSparkles aria-hidden="true" />
       {{ isDrawing ? 'Cancel drawing' : hasBbox ? 'Reset bbox' : 'Start drawing' }}

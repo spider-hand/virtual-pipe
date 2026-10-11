@@ -38,31 +38,17 @@ describe('AppSidebar', () => {
     await expect.element(input).toHaveValue('Tokyo pipes')
   })
 
-  it('should default the pipe count to one', async () => {
-    const screen = await render(AppSidebar)
-
-    await expect.element(screen.getByRole('spinbutton', { name: 'Pipe count' })).toHaveValue(1)
-  })
-
-  it('should allow entering a pipe count', async () => {
-    const screen = await render(AppSidebar)
-    const input = screen.getByRole('spinbutton', { name: 'Pipe count' })
-
-    await input.fill('25')
-
-    await expect.element(input).toHaveValue(25)
-  })
-
-  it('should submit the name, count and selected bbox', async () => {
-    const payload = { name: 'Tokyo pipes', count: 25, bbox: [139, 35, 140, 36] }
+  it('should submit the name and selected bbox', async () => {
+    const payload = { name: 'Tokyo pipes', bbox: [139, 35, 140, 36] }
     const fetch = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(Response.json({ ...payload, id: 1, status: 'pending' }, { status: 202 }))
+      .mockResolvedValue(
+        Response.json({ ...payload, id: 1, count: 0, status: 'pending' }, { status: 202 }),
+      )
     drawing.bbox.value = [139, 35, 140, 36]
     const screen = await render(AppSidebar)
 
     await screen.getByRole('textbox', { name: 'Pipeset name' }).fill('  Tokyo pipes  ')
-    await screen.getByRole('spinbutton', { name: 'Pipe count' }).fill('25')
     await screen.getByRole('button', { name: 'Submit pipeset' }).click()
 
     await expect.poll(() => fetch.mock.calls.length).toBe(1)
@@ -72,11 +58,13 @@ describe('AppSidebar', () => {
     )
   })
 
-  it('should log completion after polling in ten seconds', async () => {
-    const pipeset = { id: 1, name: 'Tokyo pipes', count: 1, bbox: [139, 35, 140, 36] }
+  it('should show the generated pipe count after polling in ten seconds', async () => {
+    const pipeset = { id: 1, name: 'Tokyo pipes', count: 25, bbox: [139, 35, 140, 36] }
     const fetch = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(Response.json({ ...pipeset, status: 'pending' }, { status: 202 }))
+      .mockResolvedValueOnce(
+        Response.json({ ...pipeset, count: 0, status: 'pending' }, { status: 202 }),
+      )
       .mockResolvedValueOnce(Response.json({ ...pipeset, status: 'completed' }))
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     drawing.bbox.value = [139, 35, 140, 36]
@@ -87,6 +75,8 @@ describe('AppSidebar', () => {
     await expect
       .poll(() => log.mock.calls.at(-1), { timeout: 12_000 })
       .toEqual(['Pipeset generation completed.', 1])
+
+    await expect.element(screen.getByText('Pipe count: 25')).toBeVisible()
 
     expect(fetch).toHaveBeenLastCalledWith(
       '/pipesets/1',

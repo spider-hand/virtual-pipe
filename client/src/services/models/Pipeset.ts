@@ -24,10 +24,6 @@ export interface Pipeset {
      */
     name: string;
     /**
-     * 
-     */
-    count: number;
-    /**
      * [west, south, east, north]; longitude -180..180, latitude -90..90; west < east and south < north.
      */
     bbox: Array<number>;
@@ -38,7 +34,6 @@ export interface Pipeset {
  */
 export function instanceOfPipeset(value: object): value is Pipeset {
     if (!('name' in value) || value['name'] === undefined) return false;
-    if (!('count' in value) || value['count'] === undefined) return false;
     if (!('bbox' in value) || value['bbox'] === undefined) return false;
     return true;
 }
@@ -54,7 +49,6 @@ export function PipesetFromJSONTyped(json: any, ignoreDiscriminator: boolean): P
     return {
         
         'name': json['name'],
-        'count': json['count'],
         'bbox': json['bbox'],
     };
 }
@@ -71,7 +65,6 @@ export function PipesetToJSONTyped(value?: Pipeset | null, ignoreDiscriminator: 
     return {
         
         'name': value['name'],
-        'count': value['count'],
         'bbox': value['bbox'],
     };
 }

@@ -26,10 +26,6 @@ export interface PipesetValidationError {
     /**
      * 
      */
-    count?: Array<string>;
-    /**
-     * 
-     */
     bbox?: any | null;
     /**
      * 
@@ -55,7 +51,6 @@ export function PipesetValidationErrorFromJSONTyped(json: any, ignoreDiscriminat
     return {
         
         'name': json['name'] == null ? undefined : json['name'],
-        'count': json['count'] == null ? undefined : json['count'],
         'bbox': json['bbox'] === undefined ? undefined : json['bbox'] === null ? null : json['bbox'],
         'nonFieldErrors': json['non_field_errors'] == null ? undefined : json['non_field_errors'],
     };
@@ -73,7 +68,6 @@ export function PipesetValidationErrorToJSONTyped(value?: PipesetValidationError
     return {
         
         'name': value['name'],
-        'count': value['count'],
         'bbox': value['bbox'],
         'non_field_errors': value['nonFieldErrors'],
     };

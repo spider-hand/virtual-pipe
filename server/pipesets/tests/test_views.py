@@ -1,9 +1,10 @@
 from unittest.mock import patch
 
 import pytest
+from django.contrib.gis.geos import LineString
 from rest_framework.test import APIClient
 
-from pipesets.models import Pipeset
+from pipesets.models import Pipe, Pipeset
 
 pytestmark = pytest.mark.django_db
 
@@ -21,7 +22,7 @@ def client():
 
 @pytest.fixture
 def payload():
-    return {"name": "Tokyo pipes", "count": 25, "bbox": [139, 35, 140, 36]}
+    return {"name": "Tokyo pipes", "bbox": [139, 35, 140, 36]}
 
 
 def test_returns_validated_pipeset(
@@ -35,11 +36,11 @@ def test_returns_validated_pipeset(
         **payload,
         "id": response.json()["id"],
         "status": "pending",
+        "count": 0,
     }
 
     pipeset = Pipeset.objects.get(pk=response.json()["id"])
     assert pipeset.name == payload["name"]
-    assert pipeset.count == payload["count"]
     assert pipeset.bbox == payload["bbox"]
     assert pipeset.status == "pending"
     enqueue.assert_called_once_with(pipeset.pk)
@@ -54,7 +55,7 @@ def test_trims_name(client, payload):
     assert response.json()["name"] == "Tokyo pipes"
 
 
-@pytest.mark.parametrize("field", ["name", "count", "bbox"])
+@pytest.mark.parametrize("field", ["name", "bbox"])
 def test_rejects_missing_field(client, payload, field):
     del payload[field]
 
@@ -71,12 +72,6 @@ def test_rejects_missing_field(client, payload, field):
         pytest.param("name", "   ", id="name-whitespace-only"),
         pytest.param("name", None, id="name-null"),
         pytest.param("name", {}, id="name-object"),
-        pytest.param("count", 0, id="count-zero"),
-        pytest.param("count", -1, id="count-negative"),
-        pytest.param("count", 1.5, id="count-fractional"),
-        pytest.param("count", "", id="count-empty"),
-        pytest.param("count", None, id="count-null"),
-        pytest.param("count", True, id="count-boolean"),
         pytest.param("bbox", None, id="bbox-null"),
         pytest.param("bbox", [], id="bbox-empty"),
         pytest.param("bbox", [139, 35, 140], id="bbox-too-few-coordinates"),
@@ -105,8 +100,8 @@ def test_rejects_invalid_field(client, payload, field, value):
     assert field in response.json()
 
 
-def test_accepts_coordinate_boundaries_and_count_one(client, payload):
-    payload.update(count=1, bbox=[-180, -90, 180, 90])
+def test_accepts_coordinate_boundaries(client, payload):
+    payload.update(bbox=[-180, -90, 180, 90])
 
     response = client.post("/pipesets", payload, format="json")
 
@@ -115,15 +110,26 @@ def test_accepts_coordinate_boundaries_and_count_one(client, payload):
         **payload,
         "id": response.json()["id"],
         "status": "pending",
+        "count": 0,
     }
 
 
 @pytest.mark.parametrize("status", ["pending", "failed", "completed"])
 def test_gets_pipeset(client, payload, status):
     pipeset = Pipeset.objects.create(**payload, status=status)
+    if status == "completed":
+        Pipe.objects.create(
+            pipeset=pipeset,
+            geometry=LineString((139, 35), (140, 36), srid=4326),
+        )
     response = client.get(f"/pipesets/{pipeset.pk}")
     assert response.status_code == 200
-    assert response.json() == {**payload, "id": pipeset.pk, "status": status}
+    assert response.json() == {
+        **payload,
+        "id": pipeset.pk,
+        "status": status,
+        "count": 1 if status == "completed" else 0,
+    }
 
 
 def test_returns_not_found(client):

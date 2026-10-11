@@ -16,63 +16,57 @@ def road():
             """
             INSERT INTO osm_roads (way_id, highway, geometry)
             VALUES (1, 'residential',
-                ST_GeomFromText('LINESTRING(138.99 35.005,139.02 35.005)', 4326))
+                ST_GeomFromText('LINESTRING(138.99 35.005,139.02 35.005)', 4326)),
+                (2, 'residential',
+                ST_GeomFromText('LINESTRING(139.002 35.007,139.004 35.007)', 4326))
             """
         )
 
 
 @pytest.fixture
 def pipeset():
-    return Pipeset.objects.create(
-        name="Tokyo pipes", count=25, bbox=[139, 35, 139.01, 35.01]
-    )
+    return Pipeset.objects.create(name="Tokyo pipes", bbox=[139, 35, 139.01, 35.01])
 
 
-def test_generates_requested_pipes_on_roads_within_bbox(pipeset, road):
+def test_generates_one_pipe_per_clipped_road_within_bbox(pipeset, road):
     generate_pipes(pipeset.pk)
     pipeset.refresh_from_db()
     assert pipeset.status == "completed"
-    assert pipeset.pipes.count() == pipeset.count
-    # Check every pipe is 1–500 metres long, entirely inside the bbox (including
-    # its boundary), and within 0.1 metres of the road.
+    assert pipeset.pipes.count() == 2
+    # Check every pipe stays inside the bbox, and their union equals all clipped roads.
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT bool_and(
-                ST_Length(pipe.geometry::geography) BETWEEN 1 AND 500
-                AND ST_CoveredBy(pipe.geometry, ST_MakeEnvelope(%s, %s, %s, %s, 4326))
-                AND ST_CoveredBy(pipe.geometry,
-                    ST_Buffer(road.geometry::geography, 0.1)::geometry)
-            )
-            FROM pipesets_pipe AS pipe CROSS JOIN osm_roads AS road
-            WHERE pipe.pipeset_id = %s
+            SELECT bool_and(ST_CoveredBy(geometry,
+                ST_MakeEnvelope(%s, %s, %s, %s, 4326))),
+                ST_Equals(ST_UnaryUnion(ST_Collect(geometry)), (
+                    SELECT ST_UnaryUnion(ST_Collect(ST_Intersection(geometry,
+                        ST_MakeEnvelope(%s, %s, %s, %s, 4326))))
+                    FROM osm_roads
+                ))
+            FROM pipesets_pipe
+            WHERE pipeset_id = %s
             """,
-            [*pipeset.bbox, pipeset.pk],
+            [*pipeset.bbox, *pipeset.bbox, pipeset.pk],
         )
-        assert cursor.fetchone()[0]
+        assert cursor.fetchone() == (True, True)
+
+
+def test_covers_roads_shorter_than_one_metre(pipeset, road):
+    pipeset.bbox = [139, 35, 139.000001, 35.006]
+    pipeset.save()
+    generate_pipes(pipeset.pk)
+    assert pipeset.pipes.count() == 1
 
 
 def test_does_not_duplicate_pipes_when_job_is_delivered_again(pipeset, road):
     generate_pipes(pipeset.pk)
     generate_pipes(pipeset.pk)
-    assert pipeset.pipes.count() == pipeset.count
+    assert pipeset.pipes.count() == 2
 
 
 def test_fails_without_usable_roads(pipeset):
     with pytest.raises(ValueError, match="No roads"):
-        generate_pipes(pipeset.pk)
-    pipeset.refresh_from_db()
-    assert pipeset.status == "failed"
-    assert not pipeset.pipes.exists()
-
-
-def test_fails_when_no_valid_pipe_can_be_generated(pipeset, road):
-    with (
-        patch("pipesets.tasks.uniform", return_value=0),
-        pytest.raises(
-            ValueError, match="Could not generate a pipe between 1 and 500 metres"
-        ),
-    ):
         generate_pipes(pipeset.pk)
     pipeset.refresh_from_db()
     assert pipeset.status == "failed"

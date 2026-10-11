@@ -7,7 +7,6 @@ from .models import Pipeset
 
 class PipesetSerializer(serializers.Serializer):
     name = serializers.CharField()
-    count = serializers.IntegerField(min_value=1)
     bbox = serializers.ListField(
         child=serializers.FloatField(),
         min_length=4,
@@ -32,6 +31,7 @@ class PipesetSerializer(serializers.Serializer):
 
 
 class PipesetResponseSerializer(serializers.ModelSerializer):
+    count = serializers.IntegerField(read_only=True, min_value=0)
     bbox = serializers.ListField(child=serializers.FloatField(), read_only=True)
 
     class Meta:
@@ -46,7 +46,6 @@ class ErrorResponseSerializer(serializers.Serializer):
 
 class PipesetValidationErrorSerializer(serializers.Serializer):
     name = serializers.ListField(child=serializers.CharField(), required=False)
-    count = serializers.ListField(child=serializers.CharField(), required=False)
     bbox = serializers.JSONField(required=False)
     non_field_errors = serializers.ListField(
         child=serializers.CharField(), required=False

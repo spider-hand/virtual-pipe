@@ -8,9 +8,12 @@ class Pipeset(models.Model):
         COMPLETED = "completed"
 
     name = models.TextField()
-    count = models.PositiveBigIntegerField()
     bbox = models.JSONField()
     status = models.CharField(max_length=9, choices=Status, default=Status.PENDING)
+
+    @property
+    def count(self):
+        return self.pipes.count()
 
 
 class Pipe(models.Model):
