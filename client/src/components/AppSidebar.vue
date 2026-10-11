@@ -7,9 +7,8 @@ import { useDrawing } from '@/composables/useDrawing'
 import { usePipeset } from '@/composables/usePipeset'
 
 const { isMapReady, hasBbox, isDrawing, bbox, startDrawing, resetBbox } = useDrawing()
-const { pipesetId: selectedPipesetId, createPipeset, getPipeset } = usePipeset()
+const { pipesetId: selectedPipesetId, pipeset, createPipeset, getPipeset } = usePipeset()
 const isSubmitting = ref(false)
-const pipeCount = ref<number>()
 let pollingTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
 
@@ -31,7 +30,6 @@ const schedulePoll = (pipesetId: number) => {
       if (pipeset.status === 'completed') {
         console.log('Pipeset generation completed.', pipeset.id)
         selectedPipesetId.value = pipeset.id
-        pipeCount.value = pipeset.count
       } else console.error('Pipeset generation failed.', pipeset.id)
     } catch (error) {
       if (!disposed) {
@@ -113,7 +111,7 @@ const handleClick = () => {
       </div>
       <button type="submit" :disabled="isSubmitting">Submit pipeset</button>
     </form>
-    <div v-if="pipeCount !== undefined">Pipe count: {{ pipeCount }}</div>
+    <div v-if="pipeset">Pipe count: {{ pipeset.count }}</div>
     <button type="button" :disabled="!isMapReady" @click="handleClick">
       <PencilSparkles aria-hidden="true" />
       {{ isDrawing ? 'Cancel drawing' : hasBbox ? 'Reset bbox' : 'Start drawing' }}

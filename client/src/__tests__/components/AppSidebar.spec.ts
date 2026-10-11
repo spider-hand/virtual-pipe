@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-vue'
 import { ref } from 'vue'
-import AppSidebar from '@/components/AppSidebar.vue'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { useDrawing } from '@/composables/useDrawing'
 
 vi.mock(import('@/composables/useDrawing'), () => ({ useDrawing: vi.fn<typeof useDrawing>() }))
@@ -17,7 +17,16 @@ const drawing = {
   resetBbox: vi.fn<ReturnType<typeof useDrawing>['resetBbox']>(),
 }
 
-beforeEach(() => {
+let AppSidebar: (typeof import('@/components/AppSidebar.vue'))['default']
+let queryClient: QueryClient
+
+const renderSidebar = () =>
+  render(AppSidebar, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+
+beforeEach(async () => {
+  vi.resetModules()
+  AppSidebar = (await import('@/components/AppSidebar.vue')).default
+  queryClient = new QueryClient()
   vi.clearAllMocks()
   drawing.isMapReady.value = true
   drawing.isDrawing.value = false
@@ -26,11 +35,14 @@ beforeEach(() => {
   vi.mocked(useDrawing).mockReturnValue(drawing)
 })
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  queryClient.clear()
+  vi.restoreAllMocks()
+})
 
 describe('AppSidebar', () => {
   it('should allow entering a pipeset name', async () => {
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
     const input = screen.getByRole('textbox', { name: 'Pipeset name' })
 
     await input.fill('Tokyo pipes')
@@ -46,7 +58,7 @@ describe('AppSidebar', () => {
         Response.json({ ...payload, id: 1, count: 0, status: 'pending' }, { status: 202 }),
       )
     drawing.bbox.value = [139, 35, 140, 36]
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
 
     await screen.getByRole('textbox', { name: 'Pipeset name' }).fill('  Tokyo pipes  ')
     await screen.getByRole('button', { name: 'Submit pipeset' }).click()
@@ -66,17 +78,12 @@ describe('AppSidebar', () => {
         Response.json({ ...pipeset, count: 0, status: 'pending' }, { status: 202 }),
       )
       .mockResolvedValueOnce(Response.json({ ...pipeset, status: 'completed' }))
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     drawing.bbox.value = [139, 35, 140, 36]
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
 
     await screen.getByRole('textbox', { name: 'Pipeset name' }).fill('Tokyo pipes')
     await screen.getByRole('button', { name: 'Submit pipeset' }).click()
-    await expect
-      .poll(() => log.mock.calls.at(-1), { timeout: 12_000 })
-      .toEqual(['Pipeset generation completed.', 1])
-
-    await expect.element(screen.getByText('Pipe count: 25')).toBeVisible()
+    await expect.element(screen.getByText('Pipe count: 25'), { timeout: 12_000 }).toBeVisible()
 
     expect(fetch).toHaveBeenLastCalledWith(
       '/pipesets/1',
@@ -86,14 +93,14 @@ describe('AppSidebar', () => {
 
   it('should disable drawing until the map is ready', async () => {
     drawing.isMapReady.value = false
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
     const button = screen.getByRole('button', { name: 'Start drawing' })
 
     await expect.element(button).toBeDisabled()
   })
 
   it('should start drawing when the button is clicked', async () => {
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
     const button = screen.getByRole('button', { name: 'Start drawing' })
 
     await button.click()
@@ -103,7 +110,7 @@ describe('AppSidebar', () => {
 
   it('should reset the existing bbox when the button is clicked', async () => {
     drawing.hasBbox.value = true
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
     const button = screen.getByRole('button', { name: 'Reset bbox' })
 
     await button.click()
@@ -113,7 +120,7 @@ describe('AppSidebar', () => {
 
   it('should cancel drawing when the button is clicked', async () => {
     drawing.isDrawing.value = true
-    const screen = await render(AppSidebar)
+    const screen = await renderSidebar()
     const button = screen.getByRole('button', { name: 'Cancel drawing' })
 
     await button.click()
