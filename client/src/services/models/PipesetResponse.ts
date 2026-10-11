@@ -20,6 +20,13 @@ import {
     PipesetStatusToJSON,
     PipesetStatusToJSONTyped,
 } from './PipesetStatus';
+import type { AttributeDefinition } from './AttributeDefinition';
+import {
+    AttributeDefinitionFromJSON,
+    AttributeDefinitionFromJSONTyped,
+    AttributeDefinitionToJSON,
+    AttributeDefinitionToJSONTyped,
+} from './AttributeDefinition';
 
 /**
  * 
@@ -47,6 +54,10 @@ export interface PipesetResponse {
      * 
      */
     readonly status: PipesetStatus;
+    /**
+     * 
+     */
+    readonly attributeDefinitions: Array<AttributeDefinition>;
 }
 
 
@@ -60,6 +71,7 @@ export function instanceOfPipesetResponse(value: object): value is PipesetRespon
     if (!('count' in value) || value['count'] === undefined) return false;
     if (!('bbox' in value) || value['bbox'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
+    if ((!('attributeDefinitions' in (value as Record<string, any>)) && !('attribute_definitions' in (value as Record<string, any>))) || ((value as Record<string, any>)['attributeDefinitions'] === undefined && (value as Record<string, any>)['attribute_definitions'] === undefined)) return false;
     return true;
 }
 
@@ -78,6 +90,7 @@ export function PipesetResponseFromJSONTyped(json: any, ignoreDiscriminator: boo
         'count': json['count'],
         'bbox': json['bbox'],
         'status': PipesetStatusFromJSON(json['status']),
+        'attributeDefinitions': ((json['attribute_definitions'] as Array<any>).map(AttributeDefinitionFromJSON)),
     };
 }
 
@@ -85,7 +98,7 @@ export function PipesetResponseToJSON(json: any): PipesetResponse {
     return PipesetResponseToJSONTyped(json, false);
 }
 
-export function PipesetResponseToJSONTyped(value?: Omit<PipesetResponse, 'id'|'name'|'count'|'bbox'|'status'> | null, ignoreDiscriminator: boolean = false): any {
+export function PipesetResponseToJSONTyped(value?: Omit<PipesetResponse, 'id'|'name'|'count'|'bbox'|'status'|'attributeDefinitions'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

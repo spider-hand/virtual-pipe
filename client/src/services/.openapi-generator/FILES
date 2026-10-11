@@ -1,10 +1,12 @@
 apis/PipesetsApi.ts
 apis/index.ts
 index.ts
+models/AttributeDefinition.ts
 models/ErrorResponse.ts
 models/Pipeset.ts
 models/PipesetResponse.ts
 models/PipesetStatus.ts
 models/PipesetValidationError.ts
+models/TypeEnum.ts
 models/index.ts
 runtime.ts

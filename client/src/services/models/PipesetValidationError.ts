@@ -30,6 +30,10 @@ export interface PipesetValidationError {
     /**
      * 
      */
+    attributeDefinitions?: any | null;
+    /**
+     * 
+     */
     nonFieldErrors?: Array<string>;
 }
 
@@ -52,6 +56,7 @@ export function PipesetValidationErrorFromJSONTyped(json: any, ignoreDiscriminat
         
         'name': json['name'] == null ? undefined : json['name'],
         'bbox': json['bbox'] === undefined ? undefined : json['bbox'] === null ? null : json['bbox'],
+        'attributeDefinitions': json['attribute_definitions'] === undefined ? undefined : json['attribute_definitions'] === null ? null : json['attribute_definitions'],
         'nonFieldErrors': json['non_field_errors'] == null ? undefined : json['non_field_errors'],
     };
 }
@@ -69,6 +74,7 @@ export function PipesetValidationErrorToJSONTyped(value?: PipesetValidationError
         
         'name': value['name'],
         'bbox': value['bbox'],
+        'attribute_definitions': value['attributeDefinitions'],
         'non_field_errors': value['nonFieldErrors'],
     };
 }

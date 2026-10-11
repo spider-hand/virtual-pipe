@@ -82,3 +82,48 @@ def test_rolls_back_pipes_when_processing_fails(pipeset, road):
     pipeset.refresh_from_db()
     assert pipeset.status == "failed"
     assert not Pipe.objects.exists()
+
+
+def test_generates_and_preserves_attributes(pipeset, road):
+    pipeset.attribute_definitions = [
+        {"name": "label", "type": "string", "min": 3, "max": 8},
+        {"name": "diameter", "type": "number", "min": -10, "max": 10},
+        {"name": "active", "type": "boolean"},
+        {"name": "material", "type": "category", "categories": ["PVC", "steel"]},
+        {"name": "empty", "type": "string", "min": 0, "max": 0},
+        {"name": "fixed", "type": "number", "min": 42, "max": 42},
+    ]
+    pipeset.save()
+    generate_pipes(pipeset.pk)
+    original = list(pipeset.pipes.order_by("id").values_list("attributes", flat=True))
+    for attributes in original:
+        assert len(attributes) == 6
+        assert 3 <= len(attributes["label"]) <= 8
+        assert attributes["label"].isascii() and attributes["label"].isalnum()
+        assert type(attributes["diameter"]) is int
+        assert -10 <= attributes["diameter"] <= 10
+        assert type(attributes["active"]) is bool
+        assert attributes["material"] in {"PVC", "steel"}
+        assert attributes["empty"] == ""
+        assert attributes["fixed"] == 42
+    generate_pipes(pipeset.pk)
+    assert (
+        list(pipeset.pipes.order_by("id").values_list("attributes", flat=True))
+        == original
+    )
+
+
+def test_rolls_back_when_attribute_generation_fails(pipeset, road):
+    pipeset.attribute_definitions = [{"name": "a", "type": "boolean"}]
+    pipeset.save()
+    with (
+        patch(
+            "pipesets.tasks.generate_attributes",
+            side_effect=RuntimeError("Attribute failure"),
+        ),
+        pytest.raises(RuntimeError, match="Attribute failure"),
+    ):
+        generate_pipes(pipeset.pk)
+    pipeset.refresh_from_db()
+    assert pipeset.status == "failed"
+    assert not pipeset.pipes.exists()

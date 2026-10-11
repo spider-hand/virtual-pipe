@@ -13,12 +13,24 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttributeDefinition } from './AttributeDefinition';
+import {
+    AttributeDefinitionFromJSON,
+    AttributeDefinitionFromJSONTyped,
+    AttributeDefinitionToJSON,
+    AttributeDefinitionToJSONTyped,
+} from './AttributeDefinition';
+
 /**
  * 
  * @export
  * @interface Pipeset
  */
 export interface Pipeset {
+    /**
+     * 
+     */
+    attributeDefinitions?: Array<AttributeDefinition>;
     /**
      * 
      */
@@ -48,6 +60,7 @@ export function PipesetFromJSONTyped(json: any, ignoreDiscriminator: boolean): P
     }
     return {
         
+        'attributeDefinitions': json['attribute_definitions'] == null ? undefined : ((json['attribute_definitions'] as Array<any>).map(AttributeDefinitionFromJSON)),
         'name': json['name'],
         'bbox': json['bbox'],
     };
@@ -64,6 +77,7 @@ export function PipesetToJSONTyped(value?: Pipeset | null, ignoreDiscriminator: 
 
     return {
         
+        'attribute_definitions': value['attributeDefinitions'] == null ? undefined : ((value['attributeDefinitions'] as Array<any>).map(AttributeDefinitionToJSON)),
         'name': value['name'],
         'bbox': value['bbox'],
     };

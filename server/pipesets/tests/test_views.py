@@ -34,6 +34,7 @@ def test_returns_validated_pipeset(
     assert response.status_code == 202
     assert response.json() == {
         **payload,
+        "attribute_definitions": [],
         "id": response.json()["id"],
         "status": "pending",
         "count": 0,
@@ -108,6 +109,7 @@ def test_accepts_coordinate_boundaries(client, payload):
     assert response.status_code == 202
     assert response.json() == {
         **payload,
+        "attribute_definitions": [],
         "id": response.json()["id"],
         "status": "pending",
         "count": 0,
@@ -126,6 +128,7 @@ def test_gets_pipeset(client, payload, status):
     assert response.status_code == 200
     assert response.json() == {
         **payload,
+        "attribute_definitions": [],
         "id": pipeset.pk,
         "status": status,
         "count": 1 if status == "completed" else 0,
@@ -145,3 +148,86 @@ def test_marks_failed_when_enqueue_fails(client, payload, enqueue):
     assert response.status_code == 503
     assert response.json() == {"detail": "Failed to enqueue pipeset generation."}
     assert Pipeset.objects.get().status == "failed"
+
+
+def test_persists_normalized_attribute_definitions(client, payload):
+    payload["attribute_definitions"] = [
+        {"name": " label ", "type": "string", "min": 0, "max": 8},
+        {"name": "diameter", "type": "number", "min": -10, "max": 10},
+        {"name": "active", "type": "boolean"},
+        {
+            "name": "material",
+            "type": "category",
+            "categories": [" PVC ", "", "PVC", "steel"],
+        },
+    ]
+    response = client.post("/pipesets", payload, format="json")
+    assert response.status_code == 202
+    definitions = response.json()["attribute_definitions"]
+    assert definitions[0]["name"] == "label"
+    assert definitions[3]["categories"] == ["PVC", "steel"]
+    assert Pipeset.objects.get().attribute_definitions == definitions
+    assert (
+        client.get(f"/pipesets/{response.json()['id']}").json()["attribute_definitions"]
+        == definitions
+    )
+
+
+@pytest.mark.parametrize(
+    "definitions",
+    [
+        pytest.param(None, id="invalid-definitions-null"),
+        pytest.param({}, id="invalid-definitions-not-list"),
+        pytest.param([{"name": "", "type": "boolean"}], id="invalid-name-empty"),
+        pytest.param(
+            [{"name": "id", "type": "boolean"}], id="invalid-name-reserved-id"
+        ),
+        pytest.param(
+            [{"name": "pipeset_id", "type": "boolean"}],
+            id="invalid-name-reserved-pipeset-id",
+        ),
+        pytest.param(
+            [{"name": "geometry", "type": "boolean"}],
+            id="invalid-name-reserved-geometry",
+        ),
+        pytest.param(
+            [{"name": "a", "type": "boolean"}, {"name": " a ", "type": "boolean"}],
+            id="invalid-name-duplicate-after-trimming",
+        ),
+        pytest.param([{"name": "a", "type": "invalid"}], id="invalid-type-unsupported"),
+        pytest.param(
+            [{"name": "a", "type": "string", "min": -1, "max": 2}],
+            id="invalid-string-negative-length",
+        ),
+        pytest.param(
+            [{"name": "a", "type": "string", "min": 3, "max": 2}],
+            id="invalid-string-min-exceeds-max",
+        ),
+        pytest.param(
+            [{"name": "a", "type": "number", "min": 0.5, "max": 2}],
+            id="invalid-number-fractional-bound",
+        ),
+        pytest.param(
+            [{"name": "a", "type": "number", "min": 0}], id="invalid-number-max-missing"
+        ),
+        pytest.param(
+            [{"name": "a", "type": "number", "min": 0, "max": 2**53}],
+            id="invalid-number-exceeds-safe-integer",
+        ),
+        pytest.param(
+            [{"name": "a", "type": "category", "categories": []}],
+            id="invalid-category-no-options",
+        ),
+        pytest.param(
+            [{"name": "a", "type": "category", "categories": [" ", ""]}],
+            id="invalid-category-only-blank-options",
+        ),
+    ],
+)
+def test_rejects_invalid_attribute_definitions(client, payload, definitions, enqueue):
+    payload["attribute_definitions"] = definitions
+    response = client.post("/pipesets", payload, format="json")
+    assert response.status_code == 400
+    assert "attribute_definitions" in response.json()
+    assert not Pipeset.objects.exists()
+    enqueue.assert_not_called()

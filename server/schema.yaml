@@ -63,6 +63,30 @@ paths:
           description: ''
 components:
   schemas:
+    AttributeDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        min:
+          type: integer
+          maximum: 9007199254740991
+          minimum: -9007199254740991
+          format: int64
+        max:
+          type: integer
+          maximum: 9007199254740991
+          minimum: -9007199254740991
+          format: int64
+        categories:
+          type: array
+          items:
+            type: string
+      required:
+      - name
+      - type
     ErrorResponse:
       type: object
       properties:
@@ -73,6 +97,10 @@ components:
     Pipeset:
       type: object
       properties:
+        attribute_definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeDefinition'
         name:
           type: string
         bbox:
@@ -110,7 +138,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/PipesetStatus'
           readOnly: true
+        attribute_definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeDefinition'
+          readOnly: true
       required:
+      - attribute_definitions
       - bbox
       - count
       - id
@@ -134,7 +168,20 @@ components:
           items:
             type: string
         bbox: {}
+        attribute_definitions: {}
         non_field_errors:
           type: array
           items:
             type: string
+    TypeEnum:
+      enum:
+      - string
+      - number
+      - boolean
+      - category
+      type: string
+      description: |-
+        * `string` - string
+        * `number` - number
+        * `boolean` - boolean
+        * `category` - category

@@ -9,6 +9,7 @@ class Pipeset(models.Model):
 
     name = models.TextField()
     bbox = models.JSONField()
+    attribute_definitions = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=9, choices=Status, default=Status.PENDING)
 
     @property

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useForm } from 'vee-validate'
-import { onUnmounted, ref } from 'vue'
+import { onUnmounted, ref, useTemplateRef } from 'vue'
 import { ResponseError } from '@/services'
+import AttributeForm from '@/components/AttributeForm.vue'
 import { PencilSparkles } from '@lucide/vue'
 import { useDrawing } from '@/composables/useDrawing'
 import { usePipeset } from '@/composables/usePipeset'
@@ -9,6 +10,7 @@ import { usePipeset } from '@/composables/usePipeset'
 const { isMapReady, hasBbox, isDrawing, bbox, startDrawing, resetBbox } = useDrawing()
 const { pipesetId: selectedPipesetId, pipeset, createPipeset, getPipeset } = usePipeset()
 const isSubmitting = ref(false)
+const attributeForm = useTemplateRef('attributeForm')
 let pollingTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
 
@@ -75,9 +77,11 @@ const submitForm = handleSubmit(
     if (isSubmitting.value || disposed) return
     isSubmitting.value = true
     try {
+      const definitions = attributeForm.value!.getDefinitions()
       const pipeset = await createPipeset({
         name: values.name.trim(),
         bbox: values.bbox!,
+        ...(definitions.length ? { attributeDefinitions: definitions } : {}),
       })
       schedulePoll(pipeset.id)
     } catch (error) {
@@ -105,17 +109,20 @@ const handleClick = () => {
 <template>
   <aside class="sidebar">
     <form novalidate @submit="submit">
-      <div>
-        <label for="pipeset-name">Pipeset name</label>
-        <input id="pipeset-name" v-model="name" type="text" />
-      </div>
-      <button type="submit" :disabled="isSubmitting">Submit pipeset</button>
+      <fieldset :disabled="isSubmitting">
+        <div>
+          <label for="pipeset-name">Pipeset name</label>
+          <input id="pipeset-name" v-model="name" type="text" />
+        </div>
+        <button type="button" :disabled="!isMapReady" @click="handleClick">
+          <PencilSparkles aria-hidden="true" />
+          {{ isDrawing ? 'Cancel drawing' : hasBbox ? 'Reset bbox' : 'Start drawing' }}
+        </button>
+        <AttributeForm ref="attributeForm" />
+        <button type="submit">Submit pipeset</button>
+      </fieldset>
     </form>
     <div v-if="pipeset">Pipe count: {{ pipeset.count }}</div>
-    <button type="button" :disabled="!isMapReady" @click="handleClick">
-      <PencilSparkles aria-hidden="true" />
-      {{ isDrawing ? 'Cancel drawing' : hasBbox ? 'Reset bbox' : 'Start drawing' }}
-    </button>
   </aside>
 </template>
 
@@ -123,5 +130,13 @@ const handleClick = () => {
 .sidebar {
   width: 360px;
   flex-shrink: 0;
+  overflow-y: auto;
+}
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 </style>
