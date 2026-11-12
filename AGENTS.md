@@ -40,15 +40,15 @@ A local tool that generates synthetic pipe datasets from OpenStreetMap roads. Us
 
 ADRs are stored as Markdown files in `harness/context/`.
 
-- Always create an ADR when making an important decision that may affect future development.
+- Create an ADR only when reversing the decision would require meaningful rework or a compatibility change, the reasons for the choice are hard to infer from the code, and a future maintainer could use those reasons to make a related decision. Record the credible alternative and what the chosen approach gives up. Skip routine conventions and setup details that the code or README already explains.
 - Always keep one decision per ADR.
 - Use descriptive filenames (e.g., `use-osm-roads.md`).
 - Always use the following format:
   - Title: A concise description of the decision.
   - Status: Proposed, Accepted, Rejected, Deprecated, or Suspended.
   - Context: What issue motivates this decision or change?
-  - Decision: What change are we proposing or making?
-  - Consequences: What becomes easier or more difficult because of this decision?
+  - Decision: What are we choosing, and why did we pass over the credible alternative?
+  - Consequences: What benefits, costs, or constraints does this choice introduce?
 - Always check whether the decision is already documented before creating a new ADR.
 - Always mark the previous ADR as Suspended, referencing its replacement when replacing a decision and creating a new one.
 - Always preserve the reasoning behind the historical decisions instead of rewriting it.
