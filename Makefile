@@ -1,12 +1,22 @@
 .DEFAULT_GOAL := up
 
-.PHONY: up down client\:format client\:format\:check client\:lint client\:test client\:api\:generate server\:format server\:format\:check server\:lint server\:test server\:schema
+.PHONY: up down osm\:download osm\:import client\:format client\:format\:check client\:lint client\:test client\:api\:generate server\:format server\:format\:check server\:lint server\:test server\:schema
+
+export REGION
 
 up:
 	docker compose up --build --detach
 
 down:
 	docker compose down
+
+osm\:download:
+	@sh osm/region.sh
+	docker compose run --build --rm --no-deps -e REGION osm sh download.sh
+
+osm\:import:
+	@sh osm/region.sh
+	docker compose run --build --rm -e REGION osm sh import.sh
 
 client\:format:
 	pnpm --dir client format

@@ -1,5 +1,10 @@
 name: virtual-pipe-dev
 
+x-postgres-environment: &postgres-environment
+  POSTGRES_DB: ${POSTGRES_DB:-virtual_pipe}
+  POSTGRES_USER: ${POSTGRES_USER:-virtual_pipe}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-virtual_pipe}
+
 services:
   client:
     build: ./client
@@ -21,6 +26,13 @@ services:
     command: sh -c "uv run --locked python manage.py migrate && uv run --locked python manage.py runserver 0.0.0.0:8000"
     ports:
       - "127.0.0.1:8000:8000"
+    environment:
+      <<: *postgres-environment
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./server:/app
       - server_venv:/app/.venv
@@ -30,7 +42,37 @@ services:
       timeout: 3s
       retries: 20
 
+  db:
+    build:
+      context: ./osm
+      dockerfile: Dockerfile.db
+    environment: *postgres-environment
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  osm:
+    profiles: [osm]
+    build: ./osm
+    environment:
+      <<: *postgres-environment
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - osm_downloads:/downloads
+
 volumes:
   client_node_modules:
   client_pnpm_store:
   server_venv:
+  postgres_data:
+  osm_downloads:
