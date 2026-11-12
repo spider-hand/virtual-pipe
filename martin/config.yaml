@@ -1,0 +1,10 @@
+cache: disable
+cache_control: no-store
+
+postgres:
+  connection_string: ${MARTIN_DATABASE_URL}
+  auto_publish: false
+  functions:
+    pipes:
+      schema: public
+      function: pipe_mvt

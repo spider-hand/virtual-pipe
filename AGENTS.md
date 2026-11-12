@@ -7,6 +7,7 @@ A local tool that generates synthetic pipe datasets from OpenStreetMap roads. Us
 ### General
 
 - Always leave one blank line between logical blocks of code for better readability.
+- Document only setup that future users need to reproduce.
 
 ### Test Design
 

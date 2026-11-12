@@ -13,6 +13,10 @@ export default defineConfig({
         target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
         changeOrigin: false,
       },
+      '/tiles': {
+        target: process.env.MARTIN_PROXY_TARGET ?? 'http://127.0.0.1:3000',
+        rewrite: (path) => path.replace(/^\/tiles(?=\/|$)/, ''),
+      },
     },
   },
   resolve: {

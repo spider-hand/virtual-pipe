@@ -2,17 +2,9 @@
 
 ## Local setup
 
-Install Node.js 24, pnpm 10.32.1, Python 3.14, uv, GNU Make, Docker with Compose v2, and Lefthook. From the repository root, install the host dependencies and the Git hook.
+Install GNU Make and Docker with Compose v2.
 
-```sh
-pnpm --dir client install --frozen-lockfile
-uv sync --project server --locked
-lefthook install
-```
-
-Run `make up` to start PostgreSQL with PostGIS, Django, and Vite. Open [the Vue dev server](http://localhost:5173). The page is blank. In your browser’s Network panel, reload the page and inspect `GET /api/health/`. The response should be HTTP 200 with `{"status":"ok"}`. Use `make down` to stop the services. PostgreSQL data and downloaded OSM extracts persist in Docker volumes.
-
-To run Django and Vite on the host, start the database with `docker compose up --build --detach --wait db`. Run `uv run --locked python manage.py migrate` and `uv run --locked python manage.py runserver` from `server/`, then `pnpm dev` from `client/`. Django connects to PostgreSQL at `127.0.0.1:5432` by default. The local database, user, and password all default to `virtual_pipe`. Set `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` in both environments if you use different credentials. For a separate host database, Django also accepts `POSTGRES_HOST` and `POSTGRES_PORT`.
+Run `make up` from the repository root. Once the services start, visit `http://localhost:5173`. Run `make down` to stop the services. PostgreSQL data and downloaded OSM extracts persist in Docker volumes.
 
 ## Import Japan roads
 
@@ -31,6 +23,14 @@ Road data is © OpenStreetMap contributors, available under the Open Database Li
 
 ## Checks
 
+Install Node.js 24, pnpm 10.32.1, Python 3.14, uv, and Lefthook for the host-side checks and Git hook.
+
+```sh
+pnpm --dir client install --frozen-lockfile
+uv sync --project server --locked
+lefthook install
+```
+
 | Task | Client | Server |
 | --- | --- | --- |
 | Format | `make client:format` | `make server:format` |
@@ -40,7 +40,7 @@ Road data is © OpenStreetMap contributors, available under the Open Database Li
 
 Lefthook runs the format checks, lint, and unit tests before each commit. Run `lefthook run pre-commit --all-files` to check both projects on demand.
 
-Server tests that access the database require a reachable PostgreSQL instance. The default local Compose user can create Django's test database.
+Server tests run in Docker Compose with GeoDjango's libraries installed. Keep Docker running for the Git hook. The test command starts the Compose database if needed, and the default database user can create Django's test database.
 
 ## Update the API client
 

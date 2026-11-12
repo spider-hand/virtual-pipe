@@ -43,7 +43,7 @@ server\:lint:
 	cd server && uv run --locked ruff check
 
 server\:test:
-	cd server && uv run --locked pytest
+	docker compose run --build --rm -T server uv run --locked pytest
 
 server\:schema:
-	cd server && uv run --locked python manage.py spectacular --file openapi.yaml --validate --fail-on-warn
+	docker compose run --build --rm -T server uv run --locked python manage.py spectacular --file openapi.yaml --validate --fail-on-warn

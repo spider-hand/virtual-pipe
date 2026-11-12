@@ -11,6 +11,7 @@ services:
     command: sh -c "pnpm install --frozen-lockfile --store-dir /pnpm/store && pnpm dev --host 0.0.0.0"
     environment:
       API_PROXY_TARGET: http://server:8000
+      MARTIN_PROXY_TARGET: http://martin:3000
     ports:
       - "127.0.0.1:5173:5173"
     volumes:
@@ -19,6 +20,8 @@ services:
       - client_pnpm_store:/pnpm/store
     depends_on:
       server:
+        condition: service_healthy
+      martin:
         condition: service_healthy
 
   server:
@@ -56,6 +59,19 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+
+  martin:
+    image: ghcr.io/maplibre/martin:1.16.1
+    command: ["--config", "/config.yaml"]
+    environment:
+      MARTIN_DATABASE_URL: ${MARTIN_DATABASE_URL:-postgresql://${POSTGRES_USER:-virtual_pipe}:${POSTGRES_PASSWORD:-virtual_pipe}@db:5432/${POSTGRES_DB:-virtual_pipe}}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./martin/config.yaml:/config.yaml:ro
+    depends_on:
+      server:
+        condition: service_healthy
 
   osm:
     profiles: [osm]

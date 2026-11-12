@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-
-import { useHealthQuery } from '@/composables/useHealthQuery'
-
-defineOptions({ render: () => null })
-
-const { checkHealth } = useHealthQuery()
-
-onMounted(checkHealth)
+import Map from '@/components/Map.vue'
 </script>
+
+<template>
+  <Map />
+</template>
