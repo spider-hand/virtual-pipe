@@ -1,0 +1,36 @@
+name: virtual-pipe-dev
+
+services:
+  client:
+    build: ./client
+    command: sh -c "pnpm install --frozen-lockfile --store-dir /pnpm/store && pnpm dev --host 0.0.0.0"
+    environment:
+      API_PROXY_TARGET: http://server:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./client:/app
+      - client_node_modules:/app/node_modules
+      - client_pnpm_store:/pnpm/store
+    depends_on:
+      server:
+        condition: service_healthy
+
+  server:
+    build: ./server
+    command: sh -c "uv run --locked python manage.py migrate && uv run --locked python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./server:/app
+      - server_venv:/app/.venv
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health/', timeout=2).close()"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  client_node_modules:
+  client_pnpm_store:
+  server_venv:

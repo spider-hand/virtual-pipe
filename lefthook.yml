@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: client format check
+      run: make client:format:check
+    - name: client lint
+      run: make client:lint
+    - name: client tests
+      run: make client:test
+    - name: server format check
+      run: make server:format:check
+    - name: server lint
+      run: make server:lint
+    - name: server tests
+      run: make server:test
