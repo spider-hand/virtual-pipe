@@ -6,6 +6,7 @@ dependencies = [
     "django>=5.2.8,<5.3",
     "djangorestframework>=3.16,<4",
     "drf-spectacular>=0.28,<1",
+    "duckdb==2.0.0",
     "psycopg[binary]>=3.2,<4",
 ]
 

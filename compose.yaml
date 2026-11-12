@@ -26,11 +26,12 @@ services:
 
   server:
     build: ./server
-    command: sh -c "uv run --locked python manage.py migrate && uv run --locked python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "uv run --locked python manage.py migrate && uv run --locked python -m pipesets.district_catalog && uv run --locked python manage.py runserver 0.0.0.0:8000"
     ports:
       - "127.0.0.1:8000:8000"
     environment:
       <<: *postgres-environment
+      DISTRICT_DATA_DIR: /data
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
     depends_on:
@@ -39,6 +40,7 @@ services:
     volumes:
       - ./server:/app
       - server_venv:/app/.venv
+      - ./data:/data
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health/', timeout=2).close()"]
       interval: 3s

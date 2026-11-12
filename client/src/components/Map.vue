@@ -4,6 +4,9 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { onMounted, onUnmounted, useTemplateRef } from 'vue'
 
+import DistrictSearch from '@/components/DistrictSearch.vue'
+import type { District } from '@/services'
+
 defineOptions({ name: 'PipeMap' })
 
 const pipesetId = '00000000-0000-4000-8000-000000000001'
@@ -11,6 +14,13 @@ const osmAttribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 const container = useTemplateRef<HTMLDivElement>('container')
 let map: MapLibreMap | undefined
+
+const fitDistrict = ({ bounds }: District) => {
+  const [west, south, east, north] = bounds
+  if (west === undefined || south === undefined || east === undefined || north === undefined) return
+
+  map?.fitBounds([west, south, east, north], { padding: 48 })
+}
 
 onMounted(() => {
   if (!container.value) return
@@ -65,11 +75,16 @@ onUnmounted(() => map?.remove())
 </script>
 
 <template>
-  <div ref="container" class="pipe-map"></div>
+  <div class="map-layout">
+    <DistrictSearch @select="fitDistrict" />
+    <div ref="container"></div>
+  </div>
 </template>
 
 <style scoped>
-.pipe-map {
+.map-layout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   position: fixed;
   inset: 0;
 }

@@ -6,5 +6,7 @@ RUN apt-get update \
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.9 /uv /usr/local/bin/uv
 
+RUN uv run --no-project --with duckdb==2.0.0 python -c "import duckdb; duckdb.install_extension('spatial')"
+
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app

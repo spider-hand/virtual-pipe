@@ -20,6 +20,7 @@ A local tool that generates synthetic pipe datasets from OpenStreetMap roads. Us
 
 - Always use arrow functions unless there is a specific reason to avoid them.
 - Always use `@` alias instead of relative paths for imports within `client/src`.
+- Mirror paths relative to `client/src/` under `client/src/__tests__/`. For example, place tests for `components/Map.vue` in `__tests__/components/Map.spec.ts`.
 - Always use `it("should ...")` for test cases.
 - Always include one default-state test when it helps establish the baseline render in component tests; name it `should render the default state`.
 - Do not assert child-component internals from parent or page tests unless the parent is explicitly responsible for the output.
@@ -28,7 +29,7 @@ A local tool that generates synthetic pipe datasets from OpenStreetMap roads. Us
 - If the composable manages API response state, name it `use{ApiName}Query.ts` (e.g., `useUserQuery.ts`).
 - Do not manually modify files inside `client/src/services/`.
 - Always update locale entries for all supported languages (Japanese and English) whenever user-facing text in `client/src` is added, changed, or removed.
-- Locale keys must live under and be referred to from the component or page that renders the text, even if identical wording exists elsewhere.
+- Store frontend messages in `client/src/locales/ja.json` and `client/src/locales/en.json`. Nest keys by the source path without its extension. For example, `components/Map.vue` reads its keys under `components.Map` in both files. Keep keys under the component or page that renders them, even when wording repeats.
 
 ### Backend
 

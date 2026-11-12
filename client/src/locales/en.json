@@ -1,0 +1,11 @@
+{
+  "components": {
+    "DistrictSearch": {
+      "label": "Search Japanese districts",
+      "placeholder": "Prefecture, city, or ward",
+      "loading": "Searching…",
+      "empty": "No matching districts",
+      "unavailable": "District search is unavailable"
+    }
+  }
+}

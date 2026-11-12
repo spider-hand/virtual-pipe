@@ -3,6 +3,34 @@ info:
   title: Virtual Pipe API
   version: 0.1.0
 paths:
+  /api/districts/:
+    get:
+      operationId: searchDistricts
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Japanese place name
+      tags:
+      - districts
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/District'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictSearchError'
+          description: ''
   /api/health/:
     get:
       operationId: getHealth
@@ -19,6 +47,31 @@ paths:
           description: ''
 components:
   schemas:
+    District:
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        bounds:
+          type: array
+          items:
+            type: number
+            format: double
+          maxItems: 4
+          minItems: 4
+      required:
+      - bounds
+      - code
+      - label
+    DistrictSearchError:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     HealthResponse:
       type: object
       properties:

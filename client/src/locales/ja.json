@@ -1,0 +1,11 @@
+{
+  "components": {
+    "DistrictSearch": {
+      "label": "行政区域を検索",
+      "placeholder": "都道府県・市区町村名",
+      "loading": "検索中…",
+      "empty": "一致する行政区域がありません",
+      "unavailable": "行政区域を検索できません"
+    }
+  }
+}

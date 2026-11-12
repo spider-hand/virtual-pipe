@@ -1,6 +1,9 @@
+apis/DistrictsApi.ts
 apis/HealthApi.ts
 apis/index.ts
 index.ts
+models/District.ts
+models/DistrictSearchError.ts
 models/HealthResponse.ts
 models/StatusEnum.ts
 models/index.ts
