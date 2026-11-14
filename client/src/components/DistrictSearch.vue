@@ -81,7 +81,7 @@ const blur = () => {
 </script>
 
 <template>
-  <div>
+  <div class="district-search">
     <label :for="inputId">{{ messages.label }}</label>
     <input
       :id="inputId"
@@ -100,7 +100,13 @@ const blur = () => {
       @compositionend="finishComposition"
       @keydown="handleKey"
     />
-    <ul v-show="expanded" :id="listId" role="listbox" :aria-label="messages.label">
+    <ul
+      v-show="expanded"
+      :id="listId"
+      class="district-results"
+      role="listbox"
+      :aria-label="messages.label"
+    >
       <li
         v-for="(district, index) in results"
         :id="optionId(index)"
@@ -113,8 +119,88 @@ const blur = () => {
         {{ district.label }}
       </li>
     </ul>
-    <div v-if="focused && open && !expanded" role="status">
+    <div v-if="focused && open && !expanded" class="district-status" role="status">
       {{ unavailable ? messages.unavailable : loading ? messages.loading : messages.empty }}
     </div>
   </div>
 </template>
+
+<style scoped>
+.district-search {
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+}
+
+label {
+  font: var(--font-title-sm);
+  letter-spacing: var(--letter-spacing-title-sm);
+}
+
+input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-md);
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  color: inherit;
+  font: var(--font-body-md);
+  letter-spacing: var(--letter-spacing-body-md);
+}
+
+input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+input:focus {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 1px;
+}
+
+.district-results,
+.district-status {
+  margin: 0;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  font: var(--font-body-sm);
+  letter-spacing: var(--letter-spacing-body-sm);
+  overflow-wrap: anywhere;
+}
+
+.district-results {
+  max-height: clamp(44px, calc(100dvh - 160px), 264px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-xxs);
+  list-style: none;
+}
+
+.district-results li {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.district-results li:hover,
+.district-results li[aria-selected='true'] {
+  background: var(--color-surface-strong);
+}
+
+.district-status {
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--color-body);
+}
+</style>

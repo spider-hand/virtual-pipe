@@ -76,16 +76,28 @@ onUnmounted(() => map?.remove())
 
 <template>
   <div class="map-layout">
-    <DistrictSearch @select="fitDistrict" />
-    <div ref="container"></div>
+    <DistrictSearch class="map-search" @select="fitDistrict" />
+    <div ref="container" class="map-canvas"></div>
   </div>
 </template>
 
 <style scoped>
 .map-layout {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   position: fixed;
   inset: 0;
+}
+
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.map-search {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 1;
+  width: min(320px, calc(100% - 2 * var(--space-md)));
 }
 </style>
