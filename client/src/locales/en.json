@@ -6,6 +6,54 @@
       "loading": "Searching…",
       "empty": "No matching districts",
       "unavailable": "District search is unavailable"
+    },
+    "PipeSidebar": {
+      "label": "Pipe tools",
+      "open": "Open pipe tools",
+      "close": "Close pipe tools",
+      "attributes": "Attribute Set",
+      "generate": "Generate Pipes",
+      "generateUnavailable": "Pipe generation is unavailable."
+    },
+    "AttributeSetEditor": {
+      "setName": "Attribute set name",
+      "setPlaceholder": "e.g. Water mains",
+      "attributes": "Attributes",
+      "attribute": "Attribute",
+      "name": "Field name",
+      "namePlaceholder": "diameter_mm",
+      "type": "Type",
+      "idFormat": "ID format",
+      "idFormats": {
+        "sequential": "Sequential",
+        "uuid": "UUID"
+      },
+      "sequentialHelp": "The sequence starts at PIPE-000001 for each pipe set.",
+      "delete": "Delete attribute {number}",
+      "choices": "Possible values (comma-separated)",
+      "choicesPlaceholder": "e.g. DIP, SP, PVC",
+      "min": "Minimum",
+      "max": "Maximum",
+      "add": "Add Attribute",
+      "save": "Save Attribute Set",
+      "saveUnavailable": "Saving is unavailable.",
+      "nameRequired": "Enter a name.",
+      "duplicateName": "Use a different attribute name.",
+      "invalidName": "Start with a lowercase letter. Use only lowercase English letters, digits, and underscores.",
+      "choicesRequired": "Enter at least one value.",
+      "boundsRequired": "Enter both a valid minimum and maximum.",
+      "integerBounds": "Enter whole numbers for both bounds.",
+      "decimalBounds": "Enter at least one decimal place in both bounds.",
+      "decimalPrecision": "Use the same number of decimal places for both bounds, for example 1.20 and 1.25.",
+      "reversedRange": "The maximum must be at least the minimum.",
+      "types": {
+        "string": "String",
+        "integer": "Integer",
+        "decimal": "Decimal",
+        "boolean": "Boolean",
+        "date": "Date",
+        "id": "Generated ID"
+      }
     }
   }
 }

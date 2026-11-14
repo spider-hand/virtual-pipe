@@ -18,7 +18,9 @@
     "generate:api": "openapi-generator-cli generate"
   },
   "dependencies": {
+    "@lucide/vue": "^1.73.0",
     "maplibre-gl": "6.18.0",
+    "vee-validate": "^4.15.1",
     "vue": "^3.5.42"
   },
   "devDependencies": {

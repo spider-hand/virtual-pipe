@@ -28,7 +28,7 @@ describe('Map', () => {
     vi.stubGlobal('fetch', fetch)
 
     const wrapper = mount(Map)
-    const input = wrapper.get('input')
+    const input = wrapper.get('input[role="combobox"]')
 
     await input.trigger('focus')
     await input.setValue('横浜市')

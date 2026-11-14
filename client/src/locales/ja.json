@@ -6,6 +6,54 @@
       "loading": "検索中…",
       "empty": "一致する行政区域がありません",
       "unavailable": "行政区域を検索できません"
+    },
+    "PipeSidebar": {
+      "label": "管路ツール",
+      "open": "管路ツールを開く",
+      "close": "管路ツールを閉じる",
+      "attributes": "属性セット",
+      "generate": "管路を生成",
+      "generateUnavailable": "管路の生成はまだ利用できません。"
+    },
+    "AttributeSetEditor": {
+      "setName": "属性セット名",
+      "setPlaceholder": "例：配水管",
+      "attributes": "属性",
+      "attribute": "属性",
+      "name": "フィールド名",
+      "namePlaceholder": "diameter_mm",
+      "type": "型",
+      "idFormat": "IDの形式",
+      "idFormats": {
+        "sequential": "連番",
+        "uuid": "UUID"
+      },
+      "sequentialHelp": "連番は管路セットごとにPIPE-000001から始まります。",
+      "delete": "属性 {number} を削除",
+      "choices": "値の候補（カンマ区切り）",
+      "choicesPlaceholder": "例：ダクタイル鋳鉄, 鋼, 塩化ビニル",
+      "min": "最小",
+      "max": "最大",
+      "add": "属性を追加",
+      "save": "属性セットを保存",
+      "saveUnavailable": "保存はまだ利用できません。",
+      "nameRequired": "名前を入力してください。",
+      "duplicateName": "重複しない属性名を入力してください。",
+      "invalidName": "半角英小文字で始め、半角英小文字・数字・アンダースコアのみを使用してください。",
+      "choicesRequired": "値を1つ以上入力してください。",
+      "boundsRequired": "有効な最小値と最大値を入力してください。",
+      "integerBounds": "最小値と最大値には整数を入力してください。",
+      "decimalBounds": "最小値と最大値は小数点以下を1桁以上入力してください。",
+      "decimalPrecision": "最小値と最大値の小数点以下の桁数をそろえてください（例：1.20 と 1.25）。",
+      "reversedRange": "最大値は最小値以上にしてください。",
+      "types": {
+        "string": "文字列",
+        "integer": "整数",
+        "decimal": "小数",
+        "boolean": "真偽値",
+        "date": "日付",
+        "id": "自動生成ID"
+      }
     }
   }
 }

@@ -2,9 +2,10 @@
 import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 
 import DistrictSearch from '@/components/DistrictSearch.vue'
+import PipeSidebar from '@/components/PipeSidebar.vue'
 import type { District } from '@/services'
 
 defineOptions({ name: 'PipeMap' })
@@ -12,6 +13,7 @@ defineOptions({ name: 'PipeMap' })
 const pipesetId = '00000000-0000-4000-8000-000000000001'
 const osmAttribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+const sidebarOpen = ref(true)
 const container = useTemplateRef<HTMLDivElement>('container')
 let map: MapLibreMap | undefined
 
@@ -75,7 +77,8 @@ onUnmounted(() => map?.remove())
 </script>
 
 <template>
-  <div class="map-layout">
+  <div class="map-layout" :class="{ 'sidebar-open': sidebarOpen }">
+    <PipeSidebar v-model:open="sidebarOpen" />
     <DistrictSearch class="map-search" @select="fitDistrict" />
     <div ref="container" class="map-canvas"></div>
   </div>
@@ -98,6 +101,11 @@ onUnmounted(() => map?.remove())
   top: var(--space-md);
   right: var(--space-md);
   z-index: 1;
-  width: min(320px, calc(100% - 2 * var(--space-md)));
+  width: min(320px, calc(100% - 2 * var(--space-md) - 44px - var(--space-xs)));
+}
+@media (max-width: 759px) {
+  .sidebar-open .map-search {
+    display: none;
+  }
 }
 </style>
