@@ -1,8 +1,8 @@
 from django.urls import path
 
-from pipesets.views import create_attribute_set, districts
+from pipesets.views import attribute_sets, districts
 
 urlpatterns = [
-    path("attribute-sets/", create_attribute_set, name="attribute-sets"),
+    path("attribute-sets/", attribute_sets, name="attribute-sets"),
     path("districts/", districts, name="districts"),
 ]

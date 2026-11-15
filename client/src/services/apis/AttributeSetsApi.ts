@@ -81,4 +81,39 @@ export class AttributeSetsApi extends runtime.BaseAPI {
         return await response.value();
     }
 
+    /**
+     * Creates request options for listAttributeSets without sending the request
+     */
+    async listAttributeSetsRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/attribute-sets/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async listAttributeSetsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AttributeSet>>> {
+        const requestOptions = await this.listAttributeSetsRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AttributeSetFromJSON));
+    }
+
+    /**
+     */
+    async listAttributeSets(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AttributeSet>> {
+        const response = await this.listAttributeSetsRaw(initOverrides);
+        return await response.value();
+    }
+
 }

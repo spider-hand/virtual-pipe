@@ -14,6 +14,36 @@ def client():
     return APIClient()
 
 
+def test_list_attribute_sets_returns_an_empty_array_when_no_sets_are_saved(client):
+    response = client.get(reverse("attribute-sets"))
+
+    assert response.status_code == 200
+    assert response.data == []
+
+
+def test_list_attribute_sets_returns_complete_sets_ordered_by_name_then_id(client):
+    attributes = [
+        {"name": "material", "type": "string", "choices": ["PVC", "鋼"]},
+        {"name": "pressure", "type": "decimal", "min": "1.20", "max": "2.00"},
+        {"name": "pipe_id", "type": "id", "id_format": "uuid"},
+    ]
+    later_id = UUID(int=2)
+    earlier_id = UUID(int=1)
+    last_id = UUID(int=3)
+    AttributeSet.objects.create(id=last_id, name="Services", attributes=attributes)
+    AttributeSet.objects.create(id=later_id, name="Mains", attributes=attributes)
+    AttributeSet.objects.create(id=earlier_id, name="Mains", attributes=attributes)
+
+    response = client.get(reverse("attribute-sets"))
+
+    assert response.status_code == 200
+    assert response.data == [
+        {"id": str(earlier_id), "name": "Mains", "attributes": attributes},
+        {"id": str(later_id), "name": "Mains", "attributes": attributes},
+        {"id": str(last_id), "name": "Services", "attributes": attributes},
+    ]
+
+
 def test_create_attribute_set_preserves_order_and_bounds(client):
     attributes = [
         {"name": "material", "type": "string", "choices": ["PVC", "鋼"]},

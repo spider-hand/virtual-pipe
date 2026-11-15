@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ChevronDown, Plus, Trash2 } from '@lucide/vue'
+import { Plus, Trash2 } from '@lucide/vue'
 import { useFieldArray, useForm } from 'vee-validate'
 import { nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 
+import SelectField from '@/components/SelectField.vue'
 import { useCreateAttributeSet } from '@/composables/useCreateAttributeSet'
 import en from '@/locales/en.json'
 import ja from '@/locales/ja.json'
@@ -12,6 +13,8 @@ const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.AttributeSetEditor
 const types = ['string', 'integer', 'decimal', 'boolean', 'date', 'id'] as const
 const idFormats = ['sequential', 'uuid'] as const
+const typeOptions = types.map((value) => ({ value, label: messages.types[value] }))
+const formatOptions = idFormats.map((value) => ({ value, label: messages.idFormats[value] }))
 const id = useId()
 const editor = useTemplateRef<HTMLFormElement>('editor')
 const { create, saved, failed, clearSaved } = useCreateAttributeSet()
@@ -175,6 +178,7 @@ const focusName = (key: string | number) => {
 }
 
 const addRow = async () => {
+  clearSaved()
   push(createRow())
   await nextTick()
 
@@ -183,6 +187,7 @@ const addRow = async () => {
 }
 
 const removeRow = async (index: number) => {
+  clearSaved()
   remove(index)
   await nextTick()
 
@@ -194,111 +199,71 @@ const removeRow = async (index: number) => {
 
 <template>
   <form ref="editor" class="editor" @submit.prevent="submit">
-    <fieldset class="editor-body" :disabled="saving || Boolean(saved)">
-      <label class="field">
-        {{ messages.setName }}
-        <input
-          v-model="setName"
-          :placeholder="messages.setPlaceholder"
-          :aria-invalid="Boolean(errors.setName) || undefined"
-          :aria-describedby="errors.setName ? `${id}-set-error` : undefined"
-          @blur="setFieldValue('setNameTouched', true, false)"
-        />
-      </label>
-      <p v-if="errors.setName" :id="`${id}-set-error`" class="error">
-        {{ errors.setName }}
-      </p>
-
-      <h2>{{ messages.attributes }}</h2>
-
-      <fieldset
-        v-for="({ key, value: row }, index) in fields"
-        :key="key"
-        :aria-label="messages.attribute"
-      >
-        <div class="row-fields">
-          <label class="field">
-            {{ messages.name }}
-            <input
-              v-model="row.name"
-              :placeholder="messages.namePlaceholder"
-              autocapitalize="none"
-              :spellcheck="false"
-              :data-row-name="key"
-              :aria-invalid="Boolean(rowError(index, 'name')) || undefined"
-              :aria-describedby="rowError(index, 'name') ? `${id}-name-error-${key}` : undefined"
-              @blur="row.nameTouched = true"
-            />
-          </label>
-
-          <label class="field">
-            {{ messages.type }}
-            <span class="select-control">
-              <select v-model="row.type" @change="row.details = emptyDetails()">
-                <option v-for="type in types" :key="type" :value="type">
-                  {{ messages.types[type] }}
-                </option>
-              </select>
-              <ChevronDown aria-hidden="true" :size="16" />
-            </span>
-          </label>
-
-          <button
-            class="delete"
-            type="button"
-            :aria-label="messages.delete.replace('{number}', String(index + 1))"
-            @click="removeRow(index)"
-          >
-            <Trash2 aria-hidden="true" :size="17" />
-          </button>
-        </div>
-        <p v-if="rowError(index, 'name')" :id="`${id}-name-error-${key}`" class="error">
-          {{ rowError(index, 'name') }}
-        </p>
-
-        <label v-if="row.type === 'string'" class="field">
-          {{ messages.choices }}
+    <div class="editor-body">
+      <fieldset class="editor-fields" :disabled="saving" @input="clearSaved" @change="clearSaved">
+        <label class="field">
+          {{ messages.setName }}
           <input
-            v-model="row.details.choices"
-            :placeholder="messages.choicesPlaceholder"
-            :aria-invalid="Boolean(rowError(index, 'details')) || undefined"
-            :aria-describedby="
-              rowError(index, 'details') ? `${id}-details-error-${key}` : undefined
-            "
-            @blur="row.details.touched = true"
+            v-model="setName"
+            :placeholder="messages.setPlaceholder"
+            :aria-invalid="Boolean(errors.setName) || undefined"
+            :aria-describedby="errors.setName ? `${id}-set-error` : undefined"
+            @blur="setFieldValue('setNameTouched', true, false)"
           />
         </label>
+        <p v-if="errors.setName" :id="`${id}-set-error`" class="error">
+          {{ errors.setName }}
+        </p>
 
-        <div v-else-if="row.type === 'id'" class="id-details">
-          <label class="field">
-            {{ messages.idFormat }}
-            <span class="select-control">
-              <select
-                v-model="row.details.idFormat"
-                :aria-describedby="
-                  row.details.idFormat === 'sequential' ? `${id}-sequence-${key}` : undefined
-                "
-              >
-                <option v-for="format in idFormats" :key="format" :value="format">
-                  {{ messages.idFormats[format] }}
-                </option>
-              </select>
-              <ChevronDown aria-hidden="true" :size="16" />
-            </span>
-          </label>
-          <p v-if="row.details.idFormat === 'sequential'" :id="`${id}-sequence-${key}`">
-            {{ messages.sequentialHelp }}
+        <h2>{{ messages.attributes }}</h2>
+
+        <fieldset
+          v-for="({ key, value: row }, index) in fields"
+          :key="key"
+          :aria-label="messages.attribute"
+        >
+          <div class="row-fields">
+            <label class="field">
+              {{ messages.name }}
+              <input
+                v-model="row.name"
+                :placeholder="messages.namePlaceholder"
+                autocapitalize="none"
+                :spellcheck="false"
+                :data-row-name="key"
+                :aria-invalid="Boolean(rowError(index, 'name')) || undefined"
+                :aria-describedby="rowError(index, 'name') ? `${id}-name-error-${key}` : undefined"
+                @blur="row.nameTouched = true"
+              />
+            </label>
+
+            <label class="field">
+              {{ messages.type }}
+              <SelectField
+                v-model="row.type"
+                :options="typeOptions"
+                @change="row.details = emptyDetails()"
+              />
+            </label>
+
+            <button
+              class="delete"
+              type="button"
+              :aria-label="messages.delete.replace('{number}', String(index + 1))"
+              @click="removeRow(index)"
+            >
+              <Trash2 aria-hidden="true" :size="17" />
+            </button>
+          </div>
+          <p v-if="rowError(index, 'name')" :id="`${id}-name-error-${key}`" class="error">
+            {{ rowError(index, 'name') }}
           </p>
-        </div>
 
-        <div v-else-if="row.type !== 'boolean'" :key="row.type" class="range">
-          <label v-for="bound in ['min', 'max'] as const" :key="bound" class="field">
-            {{ messages[bound] }}
+          <label v-if="row.type === 'string'" class="field">
+            {{ messages.choices }}
             <input
-              :value="row.details[bound]"
-              @input="row.details[bound] = ($event.target as HTMLInputElement).value"
-              :type="row.type === 'date' ? 'date' : 'text'"
-              :inputmode="row.type === 'date' ? undefined : 'decimal'"
+              v-model="row.details.choices"
+              :placeholder="messages.choicesPlaceholder"
               :aria-invalid="Boolean(rowError(index, 'details')) || undefined"
               :aria-describedby="
                 rowError(index, 'details') ? `${id}-details-error-${key}` : undefined
@@ -306,20 +271,53 @@ const removeRow = async (index: number) => {
               @blur="row.details.touched = true"
             />
           </label>
-        </div>
 
-        <p v-if="rowError(index, 'details')" :id="`${id}-details-error-${key}`" class="error">
-          {{ rowError(index, 'details') }}
-        </p>
+          <div v-else-if="row.type === 'id'" class="id-details">
+            <label class="field">
+              {{ messages.idFormat }}
+              <SelectField
+                v-model="row.details.idFormat"
+                :options="formatOptions"
+                :aria-describedby="
+                  row.details.idFormat === 'sequential' ? `${id}-sequence-${key}` : undefined
+                "
+              />
+            </label>
+            <p v-if="row.details.idFormat === 'sequential'" :id="`${id}-sequence-${key}`">
+              {{ messages.sequentialHelp }}
+            </p>
+          </div>
+
+          <div v-else-if="row.type !== 'boolean'" :key="row.type" class="range">
+            <label v-for="bound in ['min', 'max'] as const" :key="bound" class="field">
+              {{ messages[bound] }}
+              <input
+                :value="row.details[bound]"
+                @input="row.details[bound] = ($event.target as HTMLInputElement).value"
+                :type="row.type === 'date' ? 'date' : 'text'"
+                :inputmode="row.type === 'date' ? undefined : 'decimal'"
+                :aria-invalid="Boolean(rowError(index, 'details')) || undefined"
+                :aria-describedby="
+                  rowError(index, 'details') ? `${id}-details-error-${key}` : undefined
+                "
+                @blur="row.details.touched = true"
+              />
+            </label>
+          </div>
+
+          <p v-if="rowError(index, 'details')" :id="`${id}-details-error-${key}`" class="error">
+            {{ rowError(index, 'details') }}
+          </p>
+        </fieldset>
+
+        <p v-if="errors.rows" class="error">{{ errors.rows }}</p>
+
+        <button class="add" type="button" @click="addRow">
+          <Plus aria-hidden="true" :size="18" />
+          {{ messages.add }}
+        </button>
       </fieldset>
-
-      <p v-if="errors.rows" class="error">{{ errors.rows }}</p>
-
-      <button class="add" type="button" @click="addRow">
-        <Plus aria-hidden="true" :size="18" />
-        {{ messages.add }}
-      </button>
-    </fieldset>
+    </div>
 
     <footer>
       <template v-if="saved">
@@ -349,7 +347,8 @@ const removeRow = async (index: number) => {
   padding: var(--space-md);
   overflow-y: auto;
   overscroll-behavior: contain;
-  border: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-muted) var(--color-surface-soft);
 }
 
 h2 {
@@ -363,6 +362,11 @@ fieldset {
   padding: var(--space-sm) 0;
   border: 0;
   border-top: 1px solid var(--color-surface-strong);
+}
+
+.editor-fields {
+  padding: 0;
+  border: 0;
 }
 
 .field {
@@ -394,7 +398,6 @@ fieldset > .field,
 }
 
 input,
-select,
 button {
   box-sizing: border-box;
   min-height: 44px;
@@ -405,30 +408,11 @@ button {
   font: inherit;
 }
 
-input,
-select {
+input {
   width: 100%;
   min-width: 0;
   padding: var(--space-xs);
   font: var(--font-body-md);
-}
-
-.select-control {
-  position: relative;
-  display: block;
-}
-
-.select-control select {
-  appearance: none;
-  padding-inline-end: calc(var(--space-lg) + 16px);
-}
-
-.select-control svg {
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-end: var(--space-sm);
-  transform: translateY(-50%);
-  pointer-events: none;
 }
 
 .id-details p {
@@ -442,7 +426,6 @@ input::placeholder {
 }
 
 input:focus-visible,
-select:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 1px;

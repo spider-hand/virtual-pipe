@@ -12,8 +12,30 @@
       "open": "管路ツールを開く",
       "close": "管路ツールを閉じる",
       "attributes": "属性セット",
-      "generate": "管路を生成",
-      "generateUnavailable": "管路の生成はまだ利用できません。"
+      "generate": "管路を生成"
+    },
+    "PipeSetGenerator": {
+      "attributeSet": "属性セット",
+      "selectSet": "属性セットを選択",
+      "loading": "属性セットを読み込み中…",
+      "loadFailed": "属性セットを読み込めませんでした。",
+      "empty": "「属性セット」タブで属性セットを作成してください。",
+      "preview": "属性のプレビュー",
+      "choiceSeparator": "、",
+      "range": "{min} 〜 {max}",
+      "types": {
+        "string": "文字列",
+        "integer": "整数",
+        "decimal": "小数",
+        "boolean": "真偽値",
+        "date": "日付",
+        "id": "自動生成ID"
+      },
+      "idFormats": {
+        "sequential": "連番",
+        "uuid": "UUID"
+      },
+      "save": "管路セットを保存"
     },
     "AttributeSetEditor": {
       "setName": "属性セット名",

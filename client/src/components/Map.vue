@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl'
+import { Map as MapLibreMap, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 
-import DistrictSearch from '@/components/DistrictSearch.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
 import type { District } from '@/services'
 
@@ -16,12 +15,50 @@ const osmAttribution =
 const sidebarOpen = ref(true)
 const container = useTemplateRef<HTMLDivElement>('container')
 let map: MapLibreMap | undefined
+let districtBounds: [number, number, number, number] | null = null
 
-const fitDistrict = ({ bounds }: District) => {
-  const [west, south, east, north] = bounds
-  if (west === undefined || south === undefined || east === undefined || north === undefined) return
+const showDistrictBounds = () => {
+  const source = map?.getSource<GeoJSONSource>('district-bounds')
+  if (!source) return
 
-  map?.fitBounds([west, south, east, north], { padding: 48 })
+  if (!districtBounds) {
+    source.setData({ type: 'FeatureCollection', features: [] })
+    return
+  }
+
+  const [west, south, east, north] = districtBounds
+  source.setData({
+    type: 'Polygon',
+    coordinates: [
+      [
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south],
+      ],
+    ],
+  })
+}
+
+const selectDistrict = (district: District | null) => {
+  const [west, south, east, north] = district?.bounds ?? []
+  districtBounds =
+    west !== undefined && south !== undefined && east !== undefined && north !== undefined
+      ? [west, south, east, north]
+      : null
+
+  showDistrictBounds()
+
+  if (districtBounds && map) {
+    const sidebar = container.value?.parentElement?.querySelector('aside')
+    const sidebarWidth = sidebar?.getBoundingClientRect().right ?? 0
+    const width = container.value?.clientWidth ?? 0
+    const padding =
+      width - sidebarWidth >= 360 ? { top: 48, right: 48, bottom: 48, left: sidebarWidth + 48 } : 48
+
+    map.fitBounds(districtBounds, { padding })
+  }
 }
 
 onMounted(() => {
@@ -48,6 +85,10 @@ onMounted(() => {
           tiles: [`${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${pipesetId}`],
           attribution: osmAttribution,
         },
+        'district-bounds': {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        },
       },
       layers: [
         {
@@ -62,6 +103,18 @@ onMounted(() => {
           paint: { 'raster-saturation': -0.45 },
         },
         {
+          id: 'district-bounds-fill',
+          type: 'fill',
+          source: 'district-bounds',
+          paint: { 'fill-color': '#17608a', 'fill-opacity': 0.12 },
+        },
+        {
+          id: 'district-bounds-outline',
+          type: 'line',
+          source: 'district-bounds',
+          paint: { 'line-color': '#17608a', 'line-width': 2, 'line-dasharray': [3, 2] },
+        },
+        {
           id: 'pipes',
           type: 'line',
           source: 'pipes',
@@ -71,15 +124,16 @@ onMounted(() => {
       ],
     },
   })
+
+  map.once('load', showDistrictBounds)
 })
 
 onUnmounted(() => map?.remove())
 </script>
 
 <template>
-  <div class="map-layout" :class="{ 'sidebar-open': sidebarOpen }">
-    <PipeSidebar v-model:open="sidebarOpen" />
-    <DistrictSearch class="map-search" @select="fitDistrict" />
+  <div class="map-layout">
+    <PipeSidebar v-model:open="sidebarOpen" @district-change="selectDistrict" />
     <div ref="container" class="map-canvas"></div>
   </div>
 </template>
@@ -94,18 +148,5 @@ onUnmounted(() => map?.remove())
   position: absolute;
   inset: 0;
   z-index: 0;
-}
-
-.map-search {
-  position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  z-index: 1;
-  width: min(320px, calc(100% - 2 * var(--space-md) - 44px - var(--space-xs)));
-}
-@media (max-width: 759px) {
-  .sidebar-open .map-search {
-    display: none;
-  }
 }
 </style>

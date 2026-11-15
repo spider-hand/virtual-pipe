@@ -61,12 +61,45 @@ describe('AttributeSetEditor', () => {
 
     await vi.waitFor(() => expect(wrapper.get('[role=status]').text()).toBe('Attribute set saved.'))
     expect(wrapper.get('input').element.value.trim()).toBe('Mains')
-    expect(wrapper.get('input').element.matches(':disabled')).toBe(true)
+    expect(wrapper.get('input').element.matches(':disabled')).toBe(false)
 
     await wrapper.get('footer button').trigger('click')
     expect(wrapper.get('input').element.value).toBe('')
     expect(wrapper.get('select').element.value).toBe('string')
     expect(wrapper.findAll('fieldset fieldset')).toHaveLength(1)
+  })
+
+  it('should let users revise a saved draft and save the revision as a new attribute set', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (_url, options) =>
+        Response.json({ id: 'saved-id', ...JSON.parse(String(options?.body)) }, { status: 201 }),
+      )
+    vi.stubGlobal('fetch', request)
+    const wrapper = mount(AttributeSetEditor)
+    const name = wrapper.get('input')
+    await name.setValue('Mains')
+    await wrapper.get('fieldset fieldset input').setValue('active')
+    await wrapper.get('select').setValue('boolean')
+    await wrapper.get('form').trigger('submit')
+    await vi.waitFor(() => expect(wrapper.get('[role=status]').text()).toBe('Attribute set saved.'))
+
+    expect(name.element.matches(':disabled')).toBe(false)
+    await name.setValue('Mains revision')
+    expect(wrapper.get('button[type=submit]').text()).toBe('Save Attribute Set')
+
+    await wrapper.get('form').trigger('submit')
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2))
+    expect(request).toHaveBeenLastCalledWith(
+      '/api/attribute-sets/',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Mains revision',
+          attributes: [{ name: 'active', type: 'boolean' }],
+        }),
+      }),
+    )
   })
 
   it('should retain the editable draft when the save request fails', async () => {

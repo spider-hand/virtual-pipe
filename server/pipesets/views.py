@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from pipesets.district_catalog import search_districts
+from pipesets.models import AttributeSet
 from pipesets.serializers import (
     AttributeSetCreateSerializer,
     AttributeSetSerializer,
@@ -52,6 +53,13 @@ def districts(request):
 
 
 @extend_schema(
+    methods=["GET"],
+    operation_id="listAttributeSets",
+    tags=["attribute-sets"],
+    responses={200: AttributeSetSerializer(many=True)},
+)
+@extend_schema(
+    methods=["POST"],
     operation_id="createAttributeSet",
     tags=["attribute-sets"],
     request=AttributeSetCreateSerializer,
@@ -62,10 +70,14 @@ def districts(request):
         ),
     },
 )
-@api_view(["POST"])
+@api_view(["GET", "POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-def create_attribute_set(request):
+def attribute_sets(request):
+    if request.method == "GET":
+        sets = AttributeSet.objects.order_by("name", "id")
+        return Response(AttributeSetSerializer(sets, many=True).data)
+
     serializer = AttributeSetCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     attribute_set = serializer.save()

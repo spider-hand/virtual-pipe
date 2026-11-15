@@ -9,7 +9,7 @@ import type { District } from '@/services'
 const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.DistrictSearch
 
-const emit = defineEmits<{ select: [district: District] }>()
+const emit = defineEmits<{ select: [district: District]; clearSelection: [] }>()
 const { results, loading, unavailable, search, clear } = useDistrictsQuery()
 const text = ref('')
 const focused = ref(false)
@@ -22,7 +22,10 @@ const expanded = computed(() => focused.value && open.value && results.value.len
 const optionId = (index: number) => `${listId}-${index}`
 
 const update = (event: Event) => {
-  text.value = (event.target as HTMLInputElement).value
+  const value = (event.target as HTMLInputElement).value
+  if (text.value !== value) emit('clearSelection')
+
+  text.value = value
   if (composing.value) return
 
   active.value = -1

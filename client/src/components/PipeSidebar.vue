@@ -3,12 +3,15 @@ import { PanelLeftClose, PanelLeftOpen } from '@lucide/vue'
 import { nextTick, ref, useId, useTemplateRef } from 'vue'
 
 import AttributeSetEditor from '@/components/AttributeSetEditor.vue'
+import PipeSetGenerator from '@/components/PipeSetGenerator.vue'
 import en from '@/locales/en.json'
 import ja from '@/locales/ja.json'
+import type { District } from '@/services'
 
 const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.PipeSidebar
 const open = defineModel<boolean>('open', { required: true })
+const emit = defineEmits<{ districtChange: [district: District | null] }>()
 const tabs = ['attributes', 'generate'] as const
 const activeTab = ref<(typeof tabs)[number]>('attributes')
 const id = useId()
@@ -113,9 +116,11 @@ const moveTab = async (event: KeyboardEvent) => {
         :aria-labelledby="`${id}-tab-generate`"
         class="generate-panel"
         role="tabpanel"
-        tabindex="0"
       >
-        {{ messages.generateUnavailable }}
+        <PipeSetGenerator
+          :active="open && activeTab === 'generate'"
+          @district-change="emit('districtChange', $event)"
+        />
       </div>
     </aside>
   </div>
@@ -197,8 +202,7 @@ button:hover {
   background: var(--color-surface-strong);
 }
 
-button:focus-visible,
-.generate-panel:focus-visible {
+button:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: -2px;
 }
@@ -210,9 +214,7 @@ button:focus-visible,
 }
 
 .generate-panel {
-  padding: var(--space-lg) var(--space-md);
+  min-height: 0;
   overflow: auto;
-  color: var(--color-muted);
-  font: var(--font-body-sm);
 }
 </style>

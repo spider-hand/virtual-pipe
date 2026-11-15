@@ -12,8 +12,30 @@
       "open": "Open pipe tools",
       "close": "Close pipe tools",
       "attributes": "Attribute Set",
-      "generate": "Generate Pipes",
-      "generateUnavailable": "Pipe generation is unavailable."
+      "generate": "Generate Pipes"
+    },
+    "PipeSetGenerator": {
+      "attributeSet": "Attribute set",
+      "selectSet": "Select an attribute set",
+      "loading": "Loading attribute sets…",
+      "loadFailed": "Could not load attribute sets.",
+      "empty": "Create an attribute set in the Attribute Set tab to get started.",
+      "preview": "Attribute preview",
+      "choiceSeparator": ", ",
+      "range": "{min} to {max}",
+      "types": {
+        "string": "String",
+        "integer": "Integer",
+        "decimal": "Decimal",
+        "boolean": "Boolean",
+        "date": "Date",
+        "id": "Generated ID"
+      },
+      "idFormats": {
+        "sequential": "Sequential",
+        "uuid": "UUID"
+      },
+      "save": "Save Pipe Set"
     },
     "AttributeSetEditor": {
       "setName": "Attribute set name",

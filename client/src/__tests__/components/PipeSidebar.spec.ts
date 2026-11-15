@@ -1,11 +1,12 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 
 import PipeSidebar from '@/components/PipeSidebar.vue'
 
 describe('PipeSidebar', () => {
   it('should preserve the draft across keyboard tab changes and reopening', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([])))
     const wrapper = mount(
       defineComponent({
         components: { PipeSidebar },
@@ -15,11 +16,12 @@ describe('PipeSidebar', () => {
       { attachTo: document.body },
     )
     const [attributes, generate] = wrapper.findAll('[role="tab"]')
-    const name = wrapper.get('input')
+    const name = wrapper.get('[role="tabpanel"][id$="-attributes"] input')
 
     try {
       await name.setValue('Water mains')
       await attributes!.trigger('keydown', { key: 'ArrowRight' })
+      await flushPromises()
       expect(generate!.attributes('aria-selected')).toBe('true')
       expect(document.activeElement).toBe(generate!.element)
 
@@ -38,6 +40,7 @@ describe('PipeSidebar', () => {
       expect(document.activeElement).toBe(attributes!.element)
     } finally {
       wrapper.unmount()
+      vi.unstubAllGlobals()
     }
   })
 })
