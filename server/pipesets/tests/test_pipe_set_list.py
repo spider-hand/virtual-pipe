@@ -5,14 +5,26 @@ import pytest
 from django.contrib.gis.geos import LineString
 from django.utils import timezone
 
-from pipesets.models import Pipe, PipeSet
+from pipesets.models import AttributeSet, Pipe, PipeSet
 
 pytestmark = pytest.mark.django_db
 
 
 def test_list_pipesets_returns_successful_sets_with_their_own_geometry_bounds(client):
-    older = PipeSet.objects.create(name="First created")
-    newer = PipeSet.objects.create(name="Second created")
+    older_attributes = AttributeSet.objects.create(
+        name="Older attributes", attributes=[{"name": "active", "type": "boolean"}]
+    )
+    newer_attributes = AttributeSet.objects.create(
+        name="Newer attributes",
+        attributes=[
+            {"name": "material", "type": "string", "choices": ["Steel", "PVC"]},
+            {"name": "lined", "type": "boolean"},
+        ],
+    )
+    older = PipeSet.objects.create(name="First created", attribute_set=older_attributes)
+    newer = PipeSet.objects.create(
+        name="Second created", attribute_set=newer_attributes
+    )
     PipeSet.objects.filter(pk=older.pk).update(
         created_at=timezone.now() - timedelta(days=1)
     )
@@ -27,8 +39,18 @@ def test_list_pipesets_returns_successful_sets_with_their_own_geometry_bounds(cl
 
     assert response.status_code == 200
     assert response.json() == [
-        {"id": str(newer.pk), "name": newer.name, "bounds": [138, 34, 140, 36]},
-        {"id": str(older.pk), "name": older.name, "bounds": [130, 33, 131, 34]},
+        {
+            "id": str(newer.pk),
+            "name": newer.name,
+            "bounds": [138, 34, 140, 36],
+            "attribute_definitions": newer_attributes.attributes,
+        },
+        {
+            "id": str(older.pk),
+            "name": older.name,
+            "bounds": [130, 33, 131, 34],
+            "attribute_definitions": older_attributes.attributes,
+        },
     ]
 
 
@@ -46,7 +68,12 @@ def test_list_pipesets_breaks_timestamp_ties_by_id_and_orders_undated_sets_by_na
 
     assert response.status_code == 200
     assert response.json() == [
-        {"id": str(pipeset.pk), "name": pipeset.name, "bounds": None}
+        {
+            "id": str(pipeset.pk),
+            "name": pipeset.name,
+            "bounds": None,
+            "attribute_definitions": None,
+        }
         for pipeset in [first, second, legacy_a, legacy_z]
     ]
 
@@ -56,3 +83,14 @@ def test_list_pipesets_returns_empty_list_when_no_pipesets_exist(client):
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_pipesets_returns_null_definitions_for_a_set_without_an_association(
+    client,
+):
+    PipeSet.objects.create(name="Legacy pipe set")
+
+    response = client.get("/api/pipesets/")
+
+    assert response.status_code == 200
+    assert response.json()[0]["attribute_definitions"] is None

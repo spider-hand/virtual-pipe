@@ -4,8 +4,11 @@ import { nextTick, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AttributeSetEditor from '@/components/AttributeSetEditor.vue'
+import PipeSetExport from '@/components/PipeSetExport.vue'
 import PipeSetGenerator from '@/components/PipeSetGenerator.vue'
-import type { District, Prefecture } from '@/services'
+import type { District, PipeSetSummary, Prefecture } from '@/services'
+
+defineProps<{ selectedSet?: PipeSetSummary }>()
 
 const { t } = useI18n({ useScope: 'global' })
 const open = defineModel<boolean>('open', { required: true })
@@ -13,7 +16,7 @@ const emit = defineEmits<{
   areaChange: [area: District | Prefecture | null]
   pipesetReady: [id: string]
 }>()
-const tabs = ['attributes', 'generate'] as const
+const tabs = ['attributes', 'generate', 'export'] as const
 const activeTab = ref<(typeof tabs)[number]>('attributes')
 const id = useId()
 const launcher = useTemplateRef<HTMLButtonElement>('launcher')
@@ -32,16 +35,20 @@ const toggle = async () => {
 }
 
 const moveTab = async (event: KeyboardEvent) => {
+  const index = tabs.indexOf(activeTab.value)
+
   switch (event.key) {
     case 'Home':
-      activeTab.value = 'attributes'
+      activeTab.value = tabs[0]
       break
     case 'End':
-      activeTab.value = 'generate'
+      activeTab.value = tabs[tabs.length - 1]!
       break
     case 'ArrowLeft':
+      activeTab.value = tabs[(index + tabs.length - 1) % tabs.length]!
+      break
     case 'ArrowRight':
-      activeTab.value = activeTab.value === 'attributes' ? 'generate' : 'attributes'
+      activeTab.value = tabs[(index + 1) % tabs.length]!
       break
     default:
       return
@@ -115,7 +122,7 @@ const moveTab = async (event: KeyboardEvent) => {
         v-show="activeTab === 'generate'"
         :id="`${id}-panel-generate`"
         :aria-labelledby="`${id}-tab-generate`"
-        class="generate-panel"
+        class="scroll-panel"
         role="tabpanel"
       >
         <PipeSetGenerator
@@ -123,6 +130,15 @@ const moveTab = async (event: KeyboardEvent) => {
           @area-change="emit('areaChange', $event)"
           @pipeset-ready="emit('pipesetReady', $event)"
         />
+      </div>
+      <div
+        v-show="activeTab === 'export'"
+        :id="`${id}-panel-export`"
+        :aria-labelledby="`${id}-tab-export`"
+        class="scroll-panel"
+        role="tabpanel"
+      >
+        <PipeSetExport :selected-set="selectedSet" />
       </div>
     </aside>
   </div>
@@ -161,6 +177,7 @@ const moveTab = async (event: KeyboardEvent) => {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   gap: var(--space-xxs);
 }
@@ -215,7 +232,7 @@ button:focus-visible {
   min-height: 0;
 }
 
-.generate-panel {
+.scroll-panel {
   min-height: 0;
   overflow: auto;
 }

@@ -3,13 +3,14 @@ import { computed, ref, shallowRef, toRef, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AreaSearch from '@/components/AreaSearch.vue'
+import AttributePreview from '@/components/AttributePreview.vue'
 import DistrictSearch from '@/components/DistrictSearch.vue'
 import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import { usePrefecturesQuery } from '@/composables/usePrefecturesQuery'
-import type { AttributeDefinition, District, Prefecture } from '@/services'
+import type { District, Prefecture } from '@/services'
 import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
@@ -63,21 +64,6 @@ const setInvalid = computed(
 watch(sets, () => {
   if (!selectedSet.value) selectedId.value = ''
 })
-
-const details = (attribute: AttributeDefinition) => {
-  switch (attribute.type) {
-    case 'string':
-      return attribute.choices.join(t('components.PipeSetGenerator.choiceSeparator'))
-    case 'integer':
-    case 'decimal':
-    case 'date':
-      return t('components.PipeSetGenerator.range', { min: attribute.min, max: attribute.max })
-    case 'id':
-      return t(`components.PipeSetGenerator.idFormats.${attribute.idFormat}`)
-    case 'boolean':
-      return undefined
-  }
-}
 
 const setArea = (next: District | Prefecture | null) => {
   if (area.value === next) return
@@ -149,16 +135,7 @@ const save = () => {
       </p>
     </div>
 
-    <section v-if="selectedSet" :aria-labelledby="`${id}-preview`">
-      <h2 :id="`${id}-preview`">{{ t('components.PipeSetGenerator.preview') }}</h2>
-      <dl class="preview">
-        <div v-for="attribute in selectedSet.attributes" :key="attribute.name">
-          <dt>{{ attribute.name }}</dt>
-          <dd>{{ t(`components.PipeSetGenerator.types.${attribute.type}`) }}</dd>
-          <dd v-if="attribute.type !== 'boolean'">{{ details(attribute) }}</dd>
-        </div>
-      </dl>
-    </section>
+    <AttributePreview v-if="selectedSet" :attributes="selectedSet.attributes" />
 
     <fieldset class="area-types" :disabled="busy">
       <legend>{{ t('components.PipeSetGenerator.areaType') }}</legend>
@@ -235,48 +212,13 @@ const save = () => {
   gap: var(--space-xs);
 }
 
-h2 {
-  margin: 0;
-  font: var(--font-title-sm);
-}
-
 .error {
   color: color-mix(in srgb, var(--color-error) 68%, var(--color-ink));
 }
 
-.preview {
-  display: grid;
-  margin: var(--space-xs) 0 0;
-  padding: 0 var(--space-sm);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-soft);
-  overflow-wrap: anywhere;
-}
-
-.preview > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-xxs) var(--space-sm);
-  padding: var(--space-xs) 0;
-}
-
-.preview > div + div {
-  border-top: 1px solid var(--color-hairline);
-}
-
-dt {
-  font-weight: 600;
-}
-
-dd,
 p {
   margin: 0;
   color: var(--color-body);
-}
-
-dd + dd {
-  grid-column: 1 / -1;
 }
 
 button {

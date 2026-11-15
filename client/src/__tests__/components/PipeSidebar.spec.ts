@@ -45,6 +45,37 @@ describe('PipeSidebar', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('should move focus across all three tabs and wrap at both ends', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([])))
+    const wrapper = mount(PipeSidebar, {
+      props: { open: true },
+      global: { plugins: createTestPlugins() },
+      attachTo: document.body,
+    })
+
+    try {
+      const tabs = wrapper.findAll<HTMLButtonElement>('[role="tab"]')
+      const [attributes, generate, exportTab] = tabs
+      const steps = [
+        [attributes!, 'ArrowLeft', exportTab!],
+        [exportTab!, 'ArrowRight', attributes!],
+        [attributes!, 'End', exportTab!],
+        [exportTab!, 'ArrowLeft', generate!],
+        [generate!, 'ArrowRight', exportTab!],
+        [exportTab!, 'Home', attributes!],
+      ] as const
+
+      for (const [from, key, to] of steps) {
+        await from.trigger('keydown', { key })
+        expect(to.attributes('aria-selected')).toBe('true')
+        expect(document.activeElement).toBe(to.element)
+      }
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('should show a newly saved attribute set when reopening the generator', async () => {
     const saved = {
       id: '4965963c-cd1c-4b2b-be38-74220dc93884',

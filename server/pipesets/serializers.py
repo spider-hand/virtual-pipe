@@ -83,17 +83,6 @@ class PipeSetAcceptedSerializer(serializers.Serializer):
     id = serializers.UUIDField()
 
 
-class PipeSetSummarySerializer(PipeSetAcceptedSerializer):
-    name = serializers.CharField()
-    bounds = serializers.ListField(
-        child=serializers.FloatField(),
-        min_length=4,
-        max_length=4,
-        allow_null=True,
-        help_text="West, south, east, north in WGS84 degrees, or null for a set without pipes.",
-    )
-
-
 class PipeSetStatusSerializer(PipeSetAcceptedSerializer):
     status = serializers.ChoiceField(choices=PipeSet.Status.choices)
     failure_reason = serializers.CharField(required=False)
@@ -198,6 +187,24 @@ class AttributeDefinitionField(serializers.Field):
 
     def to_representation(self, instance):
         return instance
+
+
+class PipeSetSummarySerializer(PipeSetAcceptedSerializer):
+    name = serializers.CharField()
+    bounds = serializers.ListField(
+        child=serializers.FloatField(),
+        min_length=4,
+        max_length=4,
+        allow_null=True,
+        help_text="West, south, east, north in WGS84 degrees, or null for a set without pipes.",
+    )
+    attribute_definitions = serializers.ListField(
+        source="attribute_set.attributes",
+        child=AttributeDefinitionField(),
+        allow_null=True,
+        read_only=True,
+        help_text="Ordered attribute definitions, or null when no attribute set is associated.",
+    )
 
 
 class AttributeSetSerializer(serializers.ModelSerializer):

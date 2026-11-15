@@ -67,6 +67,7 @@ def pipesets(request):
     if request.method == "GET":
         sets = (
             PipeSet.objects.filter(status=PipeSet.Status.SUCCEEDED)
+            .select_related("attribute_set")
             .annotate(bounds=Extent("pipe__geometry"))
             .order_by(
                 F("created_at").desc(nulls_last=True),

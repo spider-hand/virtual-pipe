@@ -469,7 +469,16 @@ components:
             without pipes.
           maxItems: 4
           minItems: 4
+        attribute_definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeDefinition'
+          readOnly: true
+          nullable: true
+          description: Ordered attribute definitions, or null when no attribute set
+            is associated.
       required:
+      - attribute_definitions
       - bounds
       - id
       - name

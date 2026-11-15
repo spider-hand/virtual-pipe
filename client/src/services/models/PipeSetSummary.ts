@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttributeDefinition } from './AttributeDefinition';
+import {
+    AttributeDefinitionFromJSON,
+    AttributeDefinitionFromJSONTyped,
+    AttributeDefinitionToJSON,
+    AttributeDefinitionToJSONTyped,
+} from './AttributeDefinition';
+
 /**
  * 
  * @export
@@ -31,6 +39,10 @@ export interface PipeSetSummary {
      * West, south, east, north in WGS84 degrees, or null for a set without pipes.
      */
     bounds: Array<number> | null;
+    /**
+     * Ordered attribute definitions, or null when no attribute set is associated.
+     */
+    readonly attributeDefinitions: Array<AttributeDefinition> | null;
 }
 
 /**
@@ -40,6 +52,7 @@ export function instanceOfPipeSetSummary(value: object): value is PipeSetSummary
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
     if (!('bounds' in value) || value['bounds'] === undefined) return false;
+    if ((!('attributeDefinitions' in (value as Record<string, any>)) && !('attribute_definitions' in (value as Record<string, any>))) || ((value as Record<string, any>)['attributeDefinitions'] === undefined && (value as Record<string, any>)['attribute_definitions'] === undefined)) return false;
     return true;
 }
 
@@ -56,6 +69,7 @@ export function PipeSetSummaryFromJSONTyped(json: any, ignoreDiscriminator: bool
         'id': json['id'],
         'name': json['name'],
         'bounds': json['bounds'] == null ? null : json['bounds'],
+        'attributeDefinitions': (json['attribute_definitions'] == null ? null : (json['attribute_definitions'] as Array<any>).map(AttributeDefinitionFromJSON)),
     };
 }
 
@@ -63,7 +77,7 @@ export function PipeSetSummaryToJSON(json: any): PipeSetSummary {
     return PipeSetSummaryToJSONTyped(json, false);
 }
 
-export function PipeSetSummaryToJSONTyped(value?: PipeSetSummary | null, ignoreDiscriminator: boolean = false): any {
+export function PipeSetSummaryToJSONTyped(value?: Omit<PipeSetSummary, 'attributeDefinitions'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

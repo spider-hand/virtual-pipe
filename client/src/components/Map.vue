@@ -7,7 +7,7 @@ import {
 } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 
 import PipeSetSelector from '@/components/PipeSetSelector.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
@@ -22,6 +22,7 @@ const sidebarOpen = ref(true)
 const container = useTemplateRef<HTMLDivElement>('container')
 const { sets, loading, failed, load } = usePipeSetsQuery()
 const selectedId = ref('')
+const selectedSet = computed(() => sets.value.find(({ id }) => id === selectedId.value))
 let map: MapLibreMap | undefined
 let mapReady = false
 let areaBounds: [number, number, number, number] | null = null
@@ -68,7 +69,7 @@ const showPipeSet = () => {
   if (!map || !mapReady || !selectedId.value) return
 
   const id = selectedId.value
-  const [west, south, east, north] = sets.value.find((set) => set.id === id)?.bounds ?? []
+  const [west, south, east, north] = selectedSet.value?.bounds ?? []
   if (west !== undefined && south !== undefined && east !== undefined && north !== undefined) {
     fitMapBounds([west, south, east, north])
   }
@@ -209,6 +210,7 @@ onUnmounted(() => map?.remove())
       <PipeSidebar
         v-model:open="sidebarOpen"
         class="pipe-tools"
+        :selected-set="selectedSet"
         @area-change="selectArea"
         @pipeset-ready="selectGeneratedPipeSet"
       />

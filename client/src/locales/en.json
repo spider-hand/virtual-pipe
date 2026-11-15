@@ -23,7 +23,8 @@
       "open": "Open pipe tools",
       "close": "Close pipe tools",
       "attributes": "Attribute Set",
-      "generate": "Generate Pipes"
+      "generate": "Generate Pipes",
+      "export": "Export"
     },
     "PipeSetSelector": {
       "label": "Pipe set",
@@ -31,19 +32,7 @@
       "empty": "No pipe sets yet",
       "loadFailed": "Could not load pipe sets."
     },
-    "PipeSetGenerator": {
-      "areaType": "Area type",
-      "district": "District",
-      "prefecture": "Prefecture",
-      "name": "Pipe set name",
-      "nameRequired": "Enter a pipe set name.",
-      "nameTooLong": "Use 255 characters or fewer.",
-      "attributeSet": "Attribute set",
-      "selectSet": "Select an attribute set",
-      "setRequired": "Select an attribute set.",
-      "loading": "Loading attribute sets…",
-      "loadFailed": "Could not load attribute sets.",
-      "empty": "Create an attribute set in the Attribute Set tab to get started.",
+    "AttributePreview": {
       "preview": "Attribute preview",
       "choiceSeparator": ", ",
       "range": "{min} to {max}",
@@ -58,7 +47,28 @@
       "idFormats": {
         "sequential": "Sequential",
         "uuid": "UUID"
-      },
+      }
+    },
+    "PipeSetExport": {
+      "noSelection": "Select a pipe set to preview its attributes.",
+      "noDefinitions": "This pipe set has no attribute definitions.",
+      "format": "File format",
+      "action": "Export",
+      "unavailable": "Downloads are unavailable in this release."
+    },
+    "PipeSetGenerator": {
+      "areaType": "Area type",
+      "district": "District",
+      "prefecture": "Prefecture",
+      "name": "Pipe set name",
+      "nameRequired": "Enter a pipe set name.",
+      "nameTooLong": "Use 255 characters or fewer.",
+      "attributeSet": "Attribute set",
+      "selectSet": "Select an attribute set",
+      "setRequired": "Select an attribute set.",
+      "loading": "Loading attribute sets…",
+      "loadFailed": "Could not load attribute sets.",
+      "empty": "Create an attribute set in the Attribute Set tab to get started.",
       "save": "Save Pipe Set",
       "submitting": "Submitting pipe set…",
       "submitFailed": "Could not submit the pipe set. Try again.",
