@@ -1,8 +1,10 @@
 import logging
 import unicodedata
+from uuid import UUID
 
 import duckdb
 from django.db import transaction
+from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from kombu.exceptions import OperationalError
 from rest_framework import status
@@ -24,6 +26,7 @@ from pipesets.serializers import (
     PipeSetAcceptedSerializer,
     PipeSetCreateErrorSerializer,
     PipeSetCreateSerializer,
+    PipeSetStatusSerializer,
 )
 from pipesets.tasks import generate_pipeset
 
@@ -83,6 +86,39 @@ def create_pipeset(request):
         return Response({"detail": reason}, status=503)
 
     return Response(PipeSetAcceptedSerializer(pipeset).data, status=202)
+
+
+@extend_schema(
+    operation_id="getPipeSetStatus",
+    tags=["pipesets"],
+    parameters=[
+        OpenApiParameter(
+            "id",
+            UUID,
+            location=OpenApiParameter.PATH,
+            description="The submitted pipe-set ID.",
+        )
+    ],
+    responses={
+        200: PipeSetStatusSerializer,
+        404: OpenApiResponse(description="Pipe set not found."),
+    },
+)
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@never_cache
+def get_pipeset_status(request, id):
+    pipeset = (
+        PipeSet.objects.filter(pk=id).values("id", "status", "failure_reason").first()
+    )
+    if pipeset is None:
+        return Response({"detail": "Pipe set not found."}, status=404)
+
+    if not pipeset["failure_reason"]:
+        del pipeset["failure_reason"]
+
+    return Response(PipeSetStatusSerializer(pipeset).data)
 
 
 @extend_schema(

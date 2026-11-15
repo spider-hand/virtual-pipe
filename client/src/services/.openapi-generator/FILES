@@ -24,6 +24,8 @@ models/IntegerAttributeTypeEnum.ts
 models/PipeSetAccepted.ts
 models/PipeSetCreate.ts
 models/PipeSetCreateError.ts
+models/PipeSetStatus.ts
+models/PipeSetStatusEnum.ts
 models/StatusEnum.ts
 models/StringAttribute.ts
 models/StringAttributeTypeEnum.ts

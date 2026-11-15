@@ -28,12 +28,24 @@ import {
     PipeSetCreateErrorFromJSON,
     PipeSetCreateErrorToJSON,
 } from '../models/PipeSetCreateError';
+import {
+    type PipeSetStatus,
+    PipeSetStatusFromJSON,
+    PipeSetStatusToJSON,
+} from '../models/PipeSetStatus';
 
 export interface CreatePipeSetRequest {
     /**
      * 
      */
     pipeSetCreate: PipeSetCreate;
+}
+
+export interface GetPipeSetStatusRequest {
+    /**
+     * The submitted pipe-set ID.
+     */
+    id: string;
 }
 
 /**
@@ -83,6 +95,49 @@ export class PipesetsApi extends runtime.BaseAPI {
      */
     async createPipeSet(requestParameters: CreatePipeSetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PipeSetAccepted> {
         const response = await this.createPipeSetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPipeSetStatus without sending the request
+     */
+    async getPipeSetStatusRequestOpts(requestParameters: GetPipeSetStatusRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getPipeSetStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/pipesets/{id}/`;
+        urlPath = urlPath.replace('{id}', encodeURIComponent(String(requestParameters['id'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async getPipeSetStatusRaw(requestParameters: GetPipeSetStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PipeSetStatus>> {
+        const requestOptions = await this.getPipeSetStatusRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PipeSetStatusFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPipeSetStatus(requestParameters: GetPipeSetStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PipeSetStatus> {
+        const response = await this.getPipeSetStatusRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

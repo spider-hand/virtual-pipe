@@ -9,6 +9,7 @@ import type { District } from '@/services'
 const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.DistrictSearch
 
+const props = defineProps<{ disabled?: boolean }>()
 const emit = defineEmits<{ select: [district: District]; clearSelection: [] }>()
 const { results, loading, unavailable, search, clear } = useDistrictsQuery()
 const text = ref('')
@@ -18,7 +19,9 @@ const active = ref(-1)
 const open = ref(false)
 const inputId = useId()
 const listId = useId()
-const expanded = computed(() => focused.value && open.value && results.value.length > 0)
+const expanded = computed(
+  () => !props.disabled && focused.value && open.value && results.value.length > 0,
+)
 const optionId = (index: number) => `${listId}-${index}`
 
 const update = (event: Event) => {
@@ -90,6 +93,7 @@ const blur = () => {
       :id="inputId"
       :value="text"
       :placeholder="messages.placeholder"
+      :disabled="disabled"
       role="combobox"
       autocomplete="off"
       aria-autocomplete="list"
@@ -122,7 +126,7 @@ const blur = () => {
         {{ district.label }}
       </li>
     </ul>
-    <div v-if="focused && open && !expanded" class="district-status" role="status">
+    <div v-if="!disabled && focused && open && !expanded" class="district-status" role="status">
       {{ unavailable ? messages.unavailable : loading ? messages.loading : messages.empty }}
     </div>
   </div>

@@ -5,7 +5,7 @@ from django.core.validators import RegexValidator
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
-from pipesets.models import AttributeSet
+from pipesets.models import AttributeSet, PipeSet
 
 
 class DistrictSerializer(serializers.Serializer):
@@ -47,6 +47,11 @@ class PipeSetCreateSerializer(serializers.Serializer):
 
 class PipeSetAcceptedSerializer(serializers.Serializer):
     id = serializers.UUIDField()
+
+
+class PipeSetStatusSerializer(PipeSetAcceptedSerializer):
+    status = serializers.ChoiceField(choices=PipeSet.Status.choices)
+    failure_reason = serializers.CharField(required=False)
 
 
 class PipeSetCreateErrorSerializer(serializers.Serializer):

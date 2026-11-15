@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { Map as MapLibreMap, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl'
+import {
+  Map as MapLibreMap,
+  setWorkerUrl,
+  type GeoJSONSource,
+  type VectorTileSource,
+} from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
@@ -9,13 +14,38 @@ import type { District } from '@/services'
 
 defineOptions({ name: 'PipeMap' })
 
-const pipesetId = '00000000-0000-4000-8000-000000000001'
 const osmAttribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 const sidebarOpen = ref(true)
 const container = useTemplateRef<HTMLDivElement>('container')
 let map: MapLibreMap | undefined
+let mapReady = false
+let pipesetId: string | undefined
 let districtBounds: [number, number, number, number] | null = null
+
+const showPipeSet = (id: string) => {
+  pipesetId = id
+  if (!map || !mapReady) return
+
+  const tiles = [
+    `${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${encodeURIComponent(id)}`,
+  ]
+  const source = map.getSource<VectorTileSource>('pipes')
+
+  if (source) {
+    source.setTiles(tiles)
+    return
+  }
+
+  map.addSource('pipes', { type: 'vector', tiles, attribution: osmAttribution })
+  map.addLayer({
+    id: 'pipes',
+    type: 'line',
+    source: 'pipes',
+    'source-layer': 'pipes',
+    paint: { 'line-color': '#17608a', 'line-width': 2 },
+  })
+}
 
 const showDistrictBounds = () => {
   const source = map?.getSource<GeoJSONSource>('district-bounds')
@@ -80,11 +110,6 @@ onMounted(() => {
           maxzoom: 19,
           attribution: osmAttribution,
         },
-        pipes: {
-          type: 'vector',
-          tiles: [`${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${pipesetId}`],
-          attribution: osmAttribution,
-        },
         'district-bounds': {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
@@ -114,18 +139,15 @@ onMounted(() => {
           source: 'district-bounds',
           paint: { 'line-color': '#17608a', 'line-width': 2, 'line-dasharray': [3, 2] },
         },
-        {
-          id: 'pipes',
-          type: 'line',
-          source: 'pipes',
-          'source-layer': 'pipes',
-          paint: { 'line-color': '#17608a', 'line-width': 2 },
-        },
       ],
     },
   })
 
-  map.once('load', showDistrictBounds)
+  map.once('style.load', () => {
+    mapReady = true
+    showDistrictBounds()
+    if (pipesetId) showPipeSet(pipesetId)
+  })
 })
 
 onUnmounted(() => map?.remove())
@@ -133,7 +155,11 @@ onUnmounted(() => map?.remove())
 
 <template>
   <div class="map-layout">
-    <PipeSidebar v-model:open="sidebarOpen" @district-change="selectDistrict" />
+    <PipeSidebar
+      v-model:open="sidebarOpen"
+      @district-change="selectDistrict"
+      @pipeset-ready="showPipeSet"
+    />
     <div ref="container" class="map-canvas"></div>
   </div>
 </template>

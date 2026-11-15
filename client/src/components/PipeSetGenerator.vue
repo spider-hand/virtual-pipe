@@ -4,6 +4,7 @@ import { computed, ref, shallowRef, useId, watch } from 'vue'
 import DistrictSearch from '@/components/DistrictSearch.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
+import { usePipeSetGenerationQuery } from '@/composables/usePipeSetGenerationQuery'
 import en from '@/locales/en.json'
 import ja from '@/locales/ja.json'
 import type { AttributeDefinition, District } from '@/services'
@@ -11,9 +12,15 @@ import type { AttributeDefinition, District } from '@/services'
 const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.PipeSetGenerator
 const props = defineProps<{ active: boolean }>()
-const emit = defineEmits<{ districtChange: [district: District | null] }>()
+const emit = defineEmits<{
+  districtChange: [district: District | null]
+  pipesetReady: [id: string]
+}>()
 const id = useId()
 const { sets, loading, failed, load } = useAttributeSetsQuery()
+const { status, busy, submit } = usePipeSetGenerationQuery({
+  onSucceeded: (id) => emit('pipesetReady', id),
+})
 const selectedId = ref('')
 const options = computed(() => [
   { value: '', label: messages.selectSet, disabled: true },
@@ -55,6 +62,12 @@ const setDistrict = (next: District | null) => {
   district.value = next
   emit('districtChange', next)
 }
+
+const save = () => {
+  if (!selectedSet.value || !district.value) return
+
+  void submit({ attributeSetId: selectedSet.value.id, districtId: district.value.code })
+}
 </script>
 
 <template>
@@ -65,7 +78,7 @@ const setDistrict = (next: District | null) => {
         :id="`${id}-set`"
         v-model="selectedId"
         :options="options"
-        :disabled="loading || failed || sets.length === 0"
+        :disabled="busy || loading || failed || sets.length === 0"
       />
       <p v-if="loading" role="status">{{ messages.loading }}</p>
       <p v-else-if="failed" role="alert">{{ messages.loadFailed }}</p>
@@ -83,11 +96,17 @@ const setDistrict = (next: District | null) => {
       </dl>
     </section>
 
-    <DistrictSearch @select="setDistrict" @clear-selection="setDistrict(null)" />
+    <DistrictSearch :disabled="busy" @select="setDistrict" @clear-selection="setDistrict(null)" />
 
-    <button class="save" type="button" :disabled="!selectedSet || !district || loading || failed">
+    <button
+      class="save"
+      type="button"
+      :disabled="busy || !selectedSet || !district || loading || failed"
+      @click="save"
+    >
       {{ messages.save }}
     </button>
+    <p v-if="status !== 'idle'" role="status">{{ messages[status] }}</p>
   </div>
 </template>
 

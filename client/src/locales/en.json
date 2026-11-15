@@ -35,7 +35,14 @@
         "sequential": "Sequential",
         "uuid": "UUID"
       },
-      "save": "Save Pipe Set"
+      "save": "Save Pipe Set",
+      "submitting": "Submitting pipe set…",
+      "submitFailed": "Could not submit the pipe set. Try again.",
+      "pending": "Generating pipes…",
+      "statusUnavailable": "Could not check generation status. Checking again shortly.",
+      "notFound": "Could not find the pipe set. Submit again to start a new job.",
+      "succeeded": "Pipe set generated.",
+      "failed": "Could not generate the pipe set."
     },
     "AttributeSetEditor": {
       "setName": "Attribute set name",

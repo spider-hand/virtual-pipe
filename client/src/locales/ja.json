@@ -35,7 +35,14 @@
         "sequential": "連番",
         "uuid": "UUID"
       },
-      "save": "管路セットを保存"
+      "save": "管路セットを保存",
+      "submitting": "管路セットを送信中…",
+      "submitFailed": "管路セットを送信できませんでした。もう一度お試しください。",
+      "pending": "管路を生成中…",
+      "statusUnavailable": "生成状況を確認できませんでした。まもなく再確認します。",
+      "notFound": "管路セットが見つかりませんでした。再度送信して生成を開始してください。",
+      "succeeded": "管路セットを生成しました。",
+      "failed": "管路セットを生成できませんでした。"
     },
     "AttributeSetEditor": {
       "setName": "属性セット名",

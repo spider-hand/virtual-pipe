@@ -122,7 +122,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
 
-SPECTACULAR_SETTINGS = {"TITLE": "Virtual Pipe API", "VERSION": "0.1.0"}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Virtual Pipe API",
+    "VERSION": "0.1.0",
+    "ENUM_NAME_OVERRIDES": {
+        "PipeSetStatusEnum": "pipesets.models.PipeSet.Status",
+        "StatusEnum": ["ok"],
+    },
+}
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
 CELERY_BROKER_TRANSPORT_OPTIONS = {

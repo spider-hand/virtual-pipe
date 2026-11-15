@@ -94,12 +94,13 @@ describe('PipeSetGenerator', () => {
     wrapper.unmount()
   })
 
-  it('should enable the save button after both selections without sending a request on click', async () => {
+  it('should submit the selected IDs and preserve the selections if submission fails', async () => {
     vi.useFakeTimers()
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
       .mockResolvedValueOnce(Response.json([district]))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
     const wrapper = mount(PipeSetGenerator, { props: { active: true } })
     await flushPromises()
@@ -117,9 +118,17 @@ describe('PipeSetGenerator', () => {
 
     await save.trigger('click')
     await flushPromises()
-    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenLastCalledWith(
+      '/api/pipesets/',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ district_id: district.code, attribute_set_id: set.id }),
+      }),
+    )
+    expect(wrapper.get('[role="status"]').text()).toBe('Could not submit the pipe set. Try again.')
     expect(select.element.value).toBe(set.id)
     expect(search.element.value).toBe(district.label)
+    expect(save.element.disabled).toBe(false)
 
     await search.setValue('北海道')
     expect(save.element.disabled).toBe(true)

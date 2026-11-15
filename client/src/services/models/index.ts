@@ -20,6 +20,8 @@ export * from './IntegerAttributeTypeEnum';
 export * from './PipeSetAccepted';
 export * from './PipeSetCreate';
 export * from './PipeSetCreateError';
+export * from './PipeSetStatus';
+export * from './PipeSetStatusEnum';
 export * from './StatusEnum';
 export * from './StringAttribute';
 export * from './StringAttributeTypeEnum';

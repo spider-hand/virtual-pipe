@@ -11,7 +11,10 @@ import type { District } from '@/services'
 const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.PipeSidebar
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ districtChange: [district: District | null] }>()
+const emit = defineEmits<{
+  districtChange: [district: District | null]
+  pipesetReady: [id: string]
+}>()
 const tabs = ['attributes', 'generate'] as const
 const activeTab = ref<(typeof tabs)[number]>('attributes')
 const id = useId()
@@ -120,6 +123,7 @@ const moveTab = async (event: KeyboardEvent) => {
         <PipeSetGenerator
           :active="open && activeTab === 'generate'"
           @district-change="emit('districtChange', $event)"
+          @pipeset-ready="emit('pipesetReady', $event)"
         />
       </div>
     </aside>
