@@ -13,3 +13,9 @@ class Pipe(models.Model):
 
     pipeset = models.ForeignKey(PipeSet, on_delete=models.CASCADE)
     geometry = models.LineStringField(srid=4326)
+
+
+class AttributeSet(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    attributes = models.JSONField()

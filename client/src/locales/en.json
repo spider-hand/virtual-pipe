@@ -36,7 +36,6 @@
       "max": "Maximum",
       "add": "Add Attribute",
       "save": "Save Attribute Set",
-      "saveUnavailable": "Saving is unavailable.",
       "nameRequired": "Enter a name.",
       "duplicateName": "Use a different attribute name.",
       "invalidName": "Start with a lowercase letter. Use only lowercase English letters, digits, and underscores.",
@@ -53,7 +52,13 @@
         "boolean": "Boolean",
         "date": "Date",
         "id": "Generated ID"
-      }
+      },
+      "saving": "Saving…",
+      "saveSuccess": "Attribute set saved.",
+      "saveFailed": "Could not save the attribute set. Try again.",
+      "newSet": "New Attribute Set",
+      "setNameTooLong": "Use 255 characters or fewer.",
+      "attributesRequired": "Add at least one attribute."
     }
   }
 }

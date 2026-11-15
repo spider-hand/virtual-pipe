@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ChevronDown, Plus, Trash2 } from '@lucide/vue'
 import { useFieldArray, useForm } from 'vee-validate'
-import { nextTick, useId, useTemplateRef, watch } from 'vue'
+import { nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 
+import { useCreateAttributeSet } from '@/composables/useCreateAttributeSet'
 import en from '@/locales/en.json'
 import ja from '@/locales/ja.json'
+import type { AttributeDefinition } from '@/services'
 
 const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
 const messages = locale.components.AttributeSetEditor
 const types = ['string', 'integer', 'decimal', 'boolean', 'date', 'id'] as const
 const idFormats = ['sequential', 'uuid'] as const
 const id = useId()
-const editor = useTemplateRef<HTMLDivElement>('editor')
+const editor = useTemplateRef<HTMLFormElement>('editor')
+const { create, saved, failed, clearSaved } = useCreateAttributeSet()
+const submitAttempted = ref(false)
+const saving = ref(false)
 
 const emptyDetails = () => ({
   choices: '',
@@ -33,7 +38,7 @@ type Draft = { setName: string; setNameTouched: boolean; rows: Row[] }
 
 const nameRule = (rows: Row[], row: Row, index: number) => {
   const name = row.name.trim()
-  if (!name) return row.nameTouched ? messages.nameRequired : true
+  if (!name) return submitAttempted.value || row.nameTouched ? messages.nameRequired : true
   if (rows.some((other, otherIndex) => otherIndex !== index && other.name.trim() === name)) {
     return messages.duplicateName
   }
@@ -47,7 +52,8 @@ const parseChoices = (text: string) =>
     .filter(Boolean)
 
 const detailsRule = (row: Row) => {
-  const { choices, min, max, touched } = row.details
+  const { choices, min, max } = row.details
+  const touched = submitAttempted.value || row.details.touched
   if (row.type === 'boolean' || row.type === 'id') return true
 
   if (row.type === 'string') {
@@ -82,28 +88,37 @@ const detailsRule = (row: Row) => {
   return BigInt(lower.replace('.', '')) <= BigInt(upper.replace('.', '')) || messages.reversedRange
 }
 
-const { values, errors, defineField, setFieldValue, validate } = useForm<Draft>({
-  initialValues: { setName: '', setNameTouched: false, rows: [createRow()] },
-  validationSchema: {
-    __type: 'VVTypedSchema',
-    parse: (draft: Draft) => {
-      const errors: { path: string; errors: string[] }[] = []
-      if (draft.setNameTouched && !draft.setName.trim()) {
-        errors.push({ path: 'setName', errors: [messages.nameRequired] })
-      }
+const { values, errors, defineField, setFieldValue, validate, handleSubmit, resetForm } =
+  useForm<Draft>({
+    initialValues: { setName: '', setNameTouched: false, rows: [createRow()] },
+    validationSchema: {
+      __type: 'VVTypedSchema',
+      parse: (draft: Draft) => {
+        const errors: { path: string; errors: string[] }[] = []
+        const name = draft.setName.trim()
 
-      draft.rows.forEach((row, index) => {
-        const name = nameRule(draft.rows, row, index)
-        const details = detailsRule(row)
+        if ((submitAttempted.value || draft.setNameTouched) && !name) {
+          errors.push({ path: 'setName', errors: [messages.nameRequired] })
+        } else if ([...name].length > 255) {
+          errors.push({ path: 'setName', errors: [messages.setNameTooLong] })
+        }
 
-        if (name !== true) errors.push({ path: `rows[${index}].name`, errors: [name] })
-        if (details !== true) errors.push({ path: `rows[${index}].details`, errors: [details] })
-      })
+        if (submitAttempted.value && !draft.rows.length) {
+          errors.push({ path: 'rows', errors: [messages.attributesRequired] })
+        }
 
-      return errors.length ? { errors } : { errors, value: draft }
+        draft.rows.forEach((row, index) => {
+          const name = nameRule(draft.rows, row, index)
+          const details = detailsRule(row)
+
+          if (name !== true) errors.push({ path: `rows[${index}].name`, errors: [name] })
+          if (details !== true) errors.push({ path: `rows[${index}].details`, errors: [details] })
+        })
+
+        return errors.length ? { errors } : { errors, value: draft }
+      },
     },
-  },
-})
+  })
 const { fields, push, remove } = useFieldArray<Row>('rows')
 const rowError = (index: number, field: 'name' | 'details') =>
   errors.value[`rows[${index}].${field}`]
@@ -112,6 +127,48 @@ const [setName] = defineField('setName', { validateOnModelUpdate: false })
 
 // A name edit can change the validation result of other rows.
 watch(values, () => void validate(), { deep: true })
+
+const persist = handleSubmit(async (draft) => {
+  const attributes = draft.rows.map<AttributeDefinition>(({ name, type, details }) => {
+    const fieldName = name.trim()
+
+    switch (type) {
+      case 'string':
+        return { name: fieldName, type, choices: parseChoices(details.choices) }
+      case 'integer':
+      case 'decimal':
+      case 'date':
+        return { name: fieldName, type, min: details.min.trim(), max: details.max.trim() }
+      case 'id':
+        return { name: fieldName, type, idFormat: details.idFormat }
+      case 'boolean':
+        return { name: fieldName, type }
+    }
+  })
+
+  await create({ name: draft.setName.trim(), attributes })
+})
+
+const submit = async () => {
+  if (saving.value || saved.value) return
+
+  submitAttempted.value = true
+  saving.value = true
+
+  try {
+    await persist()
+  } finally {
+    saving.value = false
+  }
+}
+
+const startNew = async () => {
+  submitAttempted.value = false
+  resetForm()
+  clearSaved()
+  await nextTick()
+  editor.value?.querySelector('input')?.focus()
+}
 
 const focusName = (key: string | number) => {
   editor.value?.querySelector<HTMLInputElement>(`[data-row-name="${key}"]`)?.focus()
@@ -136,8 +193,8 @@ const removeRow = async (index: number) => {
 </script>
 
 <template>
-  <div ref="editor" class="editor">
-    <div class="editor-body">
+  <form ref="editor" class="editor" @submit.prevent="submit">
+    <fieldset class="editor-body" :disabled="saving || Boolean(saved)">
       <label class="field">
         {{ messages.setName }}
         <input
@@ -256,17 +313,27 @@ const removeRow = async (index: number) => {
         </p>
       </fieldset>
 
+      <p v-if="errors.rows" class="error">{{ errors.rows }}</p>
+
       <button class="add" type="button" @click="addRow">
         <Plus aria-hidden="true" :size="18" />
         {{ messages.add }}
       </button>
-    </div>
+    </fieldset>
 
     <footer>
-      <button class="save" type="button" disabled>{{ messages.save }}</button>
-      <p>{{ messages.saveUnavailable }}</p>
+      <template v-if="saved">
+        <p role="status">{{ messages.saveSuccess }}</p>
+        <button class="save" type="button" @click="startNew">{{ messages.newSet }}</button>
+      </template>
+      <template v-else>
+        <p v-if="failed" role="alert">{{ messages.saveFailed }}</p>
+        <button class="save" type="submit" :disabled="saving">
+          {{ saving ? messages.saving : messages.save }}
+        </button>
+      </template>
     </footer>
-  </div>
+  </form>
 </template>
 
 <style scoped>
@@ -282,6 +349,7 @@ const removeRow = async (index: number) => {
   padding: var(--space-md);
   overflow-y: auto;
   overscroll-behavior: contain;
+  border: 0;
 }
 
 h2 {
@@ -419,6 +487,15 @@ footer {
 
 .save {
   border-color: transparent;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.save:hover:not(:disabled) {
+  background: var(--color-primary-active);
+}
+
+.save:disabled {
   background: var(--color-primary-disabled);
   color: var(--color-muted);
   cursor: default;

@@ -2,7 +2,8 @@ import logging
 import unicodedata
 
 import duckdb
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -12,7 +13,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from pipesets.district_catalog import search_districts
-from pipesets.serializers import DistrictSearchErrorSerializer, DistrictSerializer
+from pipesets.serializers import (
+    AttributeSetCreateSerializer,
+    AttributeSetSerializer,
+    DistrictSearchErrorSerializer,
+    DistrictSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,3 +49,26 @@ def districts(request):
             return Response(DistrictSerializer(matches, many=True).data)
 
     return Response({"detail": "District search is unavailable."}, status=503)
+
+
+@extend_schema(
+    operation_id="createAttributeSet",
+    tags=["attribute-sets"],
+    request=AttributeSetCreateSerializer,
+    responses={
+        201: AttributeSetSerializer,
+        400: OpenApiResponse(
+            description="Validation errors keyed by field name, or an invalid JSON body."
+        ),
+    },
+)
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def create_attribute_set(request):
+    serializer = AttributeSetCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    attribute_set = serializer.save()
+    return Response(
+        AttributeSetSerializer(attribute_set).data, status=status.HTTP_201_CREATED
+    )

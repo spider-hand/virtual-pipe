@@ -3,6 +3,34 @@ info:
   title: Virtual Pipe API
   version: 0.1.0
 paths:
+  /api/attribute-sets/:
+    post:
+      operationId: createAttributeSet
+      tags:
+      - attribute-sets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeSetCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttributeSetCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttributeSetCreate'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeSet'
+          description: ''
+        '400':
+          description: Validation errors keyed by field name, or an invalid JSON body.
   /api/districts/:
     get:
       operationId: searchDistricts
@@ -47,6 +75,120 @@ paths:
           description: ''
 components:
   schemas:
+    AttributeDefinition:
+      oneOf:
+      - $ref: '#/components/schemas/StringAttribute'
+      - $ref: '#/components/schemas/IntegerAttribute'
+      - $ref: '#/components/schemas/DecimalAttribute'
+      - $ref: '#/components/schemas/BooleanAttribute'
+      - $ref: '#/components/schemas/DateAttribute'
+      - $ref: '#/components/schemas/GeneratedIdAttribute'
+      discriminator:
+        propertyName: type
+        mapping:
+          string: '#/components/schemas/StringAttribute'
+          integer: '#/components/schemas/IntegerAttribute'
+          decimal: '#/components/schemas/DecimalAttribute'
+          boolean: '#/components/schemas/BooleanAttribute'
+          date: '#/components/schemas/DateAttribute'
+          id: '#/components/schemas/GeneratedIdAttribute'
+    AttributeSet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeDefinition'
+          minItems: 1
+      required:
+      - attributes
+      - id
+      - name
+    AttributeSetCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeDefinition'
+          minItems: 1
+      required:
+      - attributes
+      - name
+    BooleanAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+        type:
+          $ref: '#/components/schemas/BooleanAttributeTypeEnum'
+      required:
+      - name
+      - type
+    BooleanAttributeTypeEnum:
+      enum:
+      - boolean
+      type: string
+      description: '* `boolean` - boolean'
+    DateAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+        type:
+          $ref: '#/components/schemas/DateAttributeTypeEnum'
+        min:
+          type: string
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+        max:
+          type: string
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+      required:
+      - max
+      - min
+      - name
+      - type
+    DateAttributeTypeEnum:
+      enum:
+      - date
+      type: string
+      description: '* `date` - date'
+    DecimalAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+        type:
+          $ref: '#/components/schemas/DecimalAttributeTypeEnum'
+        min:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]+$
+        max:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]+$
+      required:
+      - max
+      - min
+      - name
+      - type
+    DecimalAttributeTypeEnum:
+      enum:
+      - decimal
+      type: string
+      description: '* `decimal` - decimal'
     District:
       type: object
       properties:
@@ -72,6 +214,25 @@ components:
           type: string
       required:
       - detail
+    GeneratedIdAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+        type:
+          $ref: '#/components/schemas/GeneratedIdAttributeTypeEnum'
+        id_format:
+          $ref: '#/components/schemas/IdFormatEnum'
+      required:
+      - id_format
+      - name
+      - type
+    GeneratedIdAttributeTypeEnum:
+      enum:
+      - id
+      type: string
+      description: '* `id` - id'
     HealthResponse:
       type: object
       properties:
@@ -79,8 +240,62 @@ components:
           $ref: '#/components/schemas/StatusEnum'
       required:
       - status
+    IdFormatEnum:
+      enum:
+      - sequential
+      - uuid
+      type: string
+      description: |-
+        * `sequential` - sequential
+        * `uuid` - uuid
+    IntegerAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+        type:
+          $ref: '#/components/schemas/IntegerAttributeTypeEnum'
+        min:
+          type: string
+          pattern: ^-?[0-9]+$
+        max:
+          type: string
+          pattern: ^-?[0-9]+$
+      required:
+      - max
+      - min
+      - name
+      - type
+    IntegerAttributeTypeEnum:
+      enum:
+      - integer
+      type: string
+      description: '* `integer` - integer'
     StatusEnum:
       enum:
       - ok
       type: string
       description: '* `ok` - ok'
+    StringAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+        type:
+          $ref: '#/components/schemas/StringAttributeTypeEnum'
+        choices:
+          type: array
+          items:
+            type: string
+          minItems: 1
+      required:
+      - choices
+      - name
+      - type
+    StringAttributeTypeEnum:
+      enum:
+      - string
+      type: string
+      description: '* `string` - string'
