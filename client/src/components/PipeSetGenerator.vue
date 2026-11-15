@@ -11,6 +11,7 @@ import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import { usePrefecturesQuery } from '@/composables/usePrefecturesQuery'
 import type { District, Prefecture } from '@/services'
+import { isLatinQuery, normalizeLatinQuery } from '@/utils/areaSearch'
 import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
@@ -49,8 +50,16 @@ const {
 } = usePrefecturesQuery(toRef(() => props.active))
 const normalizeQuery = (query: string) => query.normalize('NFKC').replace(/\s+/gu, '')
 const prefectureResults = computed(() => {
-  const query = normalizeQuery(prefectureSearch.value)
+  const text = prefectureSearch.value
+  if (isLatinQuery(text)) {
+    const query = normalizeLatinQuery(text)
 
+    return prefectures.value.filter(({ labelEn }) =>
+      normalizeLatinQuery(labelEn ?? '').includes(query),
+    )
+  }
+
+  const query = normalizeQuery(text)
   return prefectures.value.filter(({ label }) => normalizeQuery(label).includes(query))
 })
 const selectedSet = computed(() => sets.value.find((set) => set.id === selectedId.value))

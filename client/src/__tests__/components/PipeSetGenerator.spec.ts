@@ -13,7 +13,12 @@ const set = {
     { name: 'pipe_id', type: 'id', id_format: 'sequential' },
   ],
 }
-const district = { code: '01404', label: '北海道 神恵内村', bounds: [140.3, 43.1, 140.5, 43.2] }
+const district = {
+  code: '01404',
+  label: '北海道 神恵内村',
+  label_en: 'Hokkaido Kamoenaimura',
+  bounds: [140.3, 43.1, 140.5, 43.2],
+}
 
 afterEach(() => {
   vi.useRealTimers()
@@ -193,8 +198,9 @@ describe('PipeSetGenerator', () => {
     await select.setValue(set.id)
     expect(save.element.disabled).toBe(false)
     await search.trigger('focus')
-    await search.setValue('神恵内村')
+    await search.setValue('KAMOENAI')
     await vi.advanceTimersByTimeAsync(200)
+    expect(wrapper.get('[role="option"]').text()).toBe(district.label_en)
     await wrapper.get('[role="option"]').trigger('click')
     expect(save.element.disabled).toBe(false)
     await wrapper.get('form').trigger('submit')
@@ -224,7 +230,7 @@ describe('PipeSetGenerator', () => {
     )
     expect(wrapper.get('[role="status"]').text()).toBe('Could not submit the pipe set. Try again.')
     expect(select.element.value).toBe(set.id)
-    expect(search.element.value).toBe(district.label)
+    expect(search.element.value).toBe(district.label_en)
     expect(name.element.value).toBe('  Demo mains  ')
     expect(save.element.disabled).toBe(false)
 
@@ -238,12 +244,27 @@ describe('PipeSetGenerator', () => {
   })
 
   it('should preload prefectures, filter locally, and submit only an explicitly chosen prefecture', async () => {
-    const prefecture = { code: '01', label: '北海道', bounds: [139, 41, 146, 46] }
-    const other = { code: '02', label: 'テスト県', bounds: [140, 40, 142, 42] }
+    const prefecture = {
+      code: '01',
+      label: '北海道',
+      labelEn: 'Hokkaido',
+      bounds: [139, 41, 146, 46],
+    }
+    const other = { code: '02', label: 'テスト県', label_en: 'Test', bounds: [140, 40, 142, 42] }
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
-      .mockResolvedValueOnce(Response.json([prefecture, other]))
+      .mockResolvedValueOnce(
+        Response.json([
+          {
+            code: prefecture.code,
+            label: prefecture.label,
+            label_en: prefecture.labelEn,
+            bounds: prefecture.bounds,
+          },
+          other,
+        ]),
+      )
       .mockResolvedValueOnce(Response.json({ id: set.id }, { status: 202 }))
     vi.stubGlobal('fetch', fetch)
     const wrapper = mount(PipeSetGenerator, {
@@ -285,6 +306,7 @@ describe('PipeSetGenerator', () => {
     await search.trigger('keydown', { key: 'ArrowDown' })
     await search.trigger('keydown', { key: 'Enter' })
     expect(wrapper.emitted('areaChange')).toEqual([[prefecture]])
+    expect(search.element.value).toBe(prefecture.label)
 
     await wrapper.get('input[value="district"]').setValue()
     expect(wrapper.emitted('areaChange')).toEqual([[prefecture], [null]])
@@ -292,7 +314,10 @@ describe('PipeSetGenerator', () => {
     const newSearch = wrapper.get('input[role="combobox"]')
     expect(newSearch.element.value).toBe('')
     await newSearch.trigger('focus')
-    await wrapper.get('[role="option"]:first-child').trigger('click')
+    await newSearch.setValue('ＨＯＫ-KAI DO')
+    expect(wrapper.get('[role="option"]').text()).toBe(prefecture.labelEn)
+    await wrapper.get('[role="option"]').trigger('click')
+    expect(newSearch.element.value).toBe(prefecture.labelEn)
 
     await wrapper.get('form').trigger('submit')
     await flushPromises()

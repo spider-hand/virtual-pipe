@@ -28,6 +28,10 @@ export interface District {
      */
     label: string;
     /**
+     * Romanized place name when available.
+     */
+    labelEn: string | null;
+    /**
      * 
      */
     bounds: Array<number>;
@@ -39,6 +43,7 @@ export interface District {
 export function instanceOfDistrict(value: object): value is District {
     if (!('code' in value) || value['code'] === undefined) return false;
     if (!('label' in value) || value['label'] === undefined) return false;
+    if ((!('labelEn' in (value as Record<string, any>)) && !('label_en' in (value as Record<string, any>))) || ((value as Record<string, any>)['labelEn'] === undefined && (value as Record<string, any>)['label_en'] === undefined)) return false;
     if (!('bounds' in value) || value['bounds'] === undefined) return false;
     return true;
 }
@@ -55,6 +60,7 @@ export function DistrictFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         
         'code': json['code'],
         'label': json['label'],
+        'labelEn': json['label_en'],
         'bounds': json['bounds'],
     };
 }
@@ -72,6 +78,7 @@ export function DistrictToJSONTyped(value?: District | null, ignoreDiscriminator
         
         'code': value['code'],
         'label': value['label'],
+        'label_en': value['labelEn'],
         'bounds': value['bounds'],
     };
 }

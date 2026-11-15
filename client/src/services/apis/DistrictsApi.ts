@@ -26,7 +26,7 @@ import {
 
 export interface SearchDistrictsRequest {
     /**
-     * Japanese place name
+     * Japanese or romanized place name
      */
     q?: string;
 }

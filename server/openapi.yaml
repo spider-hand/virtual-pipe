@@ -54,7 +54,7 @@ paths:
         name: q
         schema:
           type: string
-        description: Japanese place name
+        description: Japanese or romanized place name
       tags:
       - districts
       security:
@@ -359,6 +359,10 @@ components:
           type: string
         label:
           type: string
+        label_en:
+          type: string
+          nullable: true
+          description: Romanized place name when available.
         bounds:
           type: array
           items:
@@ -370,6 +374,7 @@ components:
       - bounds
       - code
       - label
+      - label_en
     DistrictSearchError:
       type: object
       properties:
@@ -536,6 +541,10 @@ components:
           type: string
         label:
           type: string
+        label_en:
+          type: string
+          nullable: true
+          description: Romanized place name when available.
         bounds:
           type: array
           items:
@@ -547,6 +556,7 @@ components:
       - bounds
       - code
       - label
+      - label_en
     PrefectureSearchError:
       type: object
       properties:

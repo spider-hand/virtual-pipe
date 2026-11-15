@@ -15,13 +15,19 @@ def district_catalog(tmp_path, monkeypatch):
         connection.execute(
             """
             CREATE TABLE districts AS
-            SELECT code, municipality, ward, label, bounds
+            SELECT code, municipality, ward, label, city_en, label_en, bounds
             FROM (VALUES
-                ('13206', '府中市', NULL, '東京都 府中市', [139.4, 35.6, 139.6, 35.7]),
-                ('34208', '府中市', NULL, '広島県 府中市', [133.1, 34.5, 133.4, 34.8]),
-                ('14104', '横浜市', '中区', '神奈川県 横浜市 中区', [139.5, 35.4, 139.7, 35.5]),
-                ('01234', '中区町', NULL, '北海道 中区町', [141.0, 43.0, 142.0, 44.0])
-            ) AS entries(code, municipality, ward, label, bounds)
+                ('13206', '府中市', NULL, '東京都 府中市', 'Fuchushi',
+                    'Tokyo Fuchushi', [139.4, 35.6, 139.6, 35.7]),
+                ('34208', '府中市', NULL, '広島県 府中市', NULL,
+                    NULL, [133.1, 34.5, 133.4, 34.8]),
+                ('14104', '横浜市', '中区', '神奈川県 横浜市 中区', 'Yokohamashi, Nakaku',
+                    'Kanagawa Yokohamashi, Nakaku', [139.5, 35.4, 139.7, 35.5]),
+                ('01234', '中区町', NULL, '北海道 中区町', 'Nakakucho',
+                    'Hokkaido Nakakucho', [141.0, 43.0, 142.0, 44.0]),
+                ('01235', '横浜白町', NULL, '北海道 横浜白町', 'Yokohamashirocho',
+                    'Hokkaido Yokohamashirocho', [141.0, 43.0, 142.0, 44.0])
+            ) AS entries(code, municipality, ward, label, city_en, label_en, bounds)
             """
         )
 
@@ -33,7 +39,7 @@ def district_catalog(tmp_path, monkeypatch):
     [
         ("府中市", ["34208", "13206"]),
         ("中区", ["14104", "01234"]),
-        ("横浜", ["14104"]),
+        ("横浜", ["01235", "14104"]),
         ("神奈川県 横浜市", ["14104"]),
         ("浜市", ["14104"]),
     ],
@@ -50,11 +56,47 @@ def test_search_returns_ranked_districts_with_bounds(
         assert results[0] == {
             "code": "14104",
             "label": "神奈川県 横浜市 中区",
+            "label_en": "Kanagawa Yokohamashi, Nakaku",
             "bounds": [139.5, 35.4, 139.7, 35.5],
         }
 
 
-@pytest.mark.parametrize("query", ["", "   ", "該当なし", "%"])
+@pytest.mark.parametrize(
+    ("query", "codes"),
+    [
+        ("YOKOHAMA", ["01235", "14104"]),
+        ("Ｙｏｋｏｈａｍａ shi, Naka-ku", ["14104"]),
+        ("Naka-ku", ["14104", "01234"]),
+        ("Yokohamashi", ["14104", "01235"]),
+        ("ohamashi", ["01235", "14104"]),
+    ],
+)
+def test_search_returns_ranked_districts_for_romanized_names(
+    client, district_catalog, query, codes
+):
+    response = client.get("/api/districts/", {"q": query})
+
+    assert response.status_code == 200
+    results = response.json()
+    assert [district["code"] for district in results] == codes
+    assert (
+        next(result for result in results if result["code"] == "14104")["label_en"]
+        == "Kanagawa Yokohamashi, Nakaku"
+    )
+
+
+def test_search_returns_japanese_names_for_districts_without_romanization(
+    client, district_catalog
+):
+    response = client.get("/api/districts/", {"q": "広島県 府中市"})
+
+    assert response.status_code == 200
+    [district] = response.json()
+    assert district["label"] == "広島県 府中市"
+    assert district["label_en"] is None
+
+
+@pytest.mark.parametrize("query", ["", "   ", "該当なし", "%", ",-"])
 def test_search_returns_empty_results_for_blank_or_unmatched_text(
     client, district_catalog, query
 ):
@@ -69,7 +111,8 @@ def test_search_limits_suggestions_to_ten(client, district_catalog):
         connection.execute(
             """
             INSERT INTO districts
-            SELECT lpad(i::VARCHAR, 5, '0'), '試験町', NULL, '試験県 試験町', [130, 31, 131, 32]
+            SELECT lpad(i::VARCHAR, 5, '0'), '試験町', NULL, '試験県 試験町',
+                NULL, NULL, [130, 31, 131, 32]
             FROM range(12) AS rows(i)
             """
         )
@@ -134,21 +177,28 @@ def test_catalog_dissolves_districts_and_preserves_islands_and_prefecture_border
             }
         )
     source.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
+    (tmp_path / "municipal_names.csv").write_text(
+        "code,pref_jp,pref_en,city_en\n"
+        "01000,北海道,Hokkaido,\n"
+        "01001,北海道,Hokkaido,Shikenshi\n"
+        "02000,青森県,Aomori,\n",
+        encoding="utf-8",
+    )
 
     catalog_builder.prepare_catalog()
 
     with duckdb.connect(str(catalog), read_only=True) as connection:
         connection.execute("LOAD spatial")
         assert connection.execute(
-            "SELECT code FROM districts ORDER BY code"
+            "SELECT code, label_en FROM districts ORDER BY code"
         ).fetchall() == [
-            ("01001",),
-            ("01002",),
-            ("02001",),
+            ("01001", "Hokkaido Shikenshi"),
+            ("01002", None),
+            ("02001", None),
         ]
         rows = connection.execute(
             """
-            SELECT code, label, bounds, ST_NumGeometries(boundary), ST_Area(boundary),
+            SELECT code, label, label_en, bounds, ST_NumGeometries(boundary), ST_Area(boundary),
                 ST_IsValid(boundary)
             FROM (
                 SELECT *, ST_GeomFromWKB(boundary_wkb) AS boundary
@@ -159,6 +209,6 @@ def test_catalog_dissolves_districts_and_preserves_islands_and_prefecture_border
         ).fetchall()
 
     assert rows == [
-        ("01", "北海道", [140, 40, 145, 41], 2, 3, True),
-        ("02", "青森県", [142, 40, 143, 41], 1, 1, True),
+        ("01", "北海道", "Hokkaido", [140, 40, 145, 41], 2, 3, True),
+        ("02", "青森県", "Aomori", [142, 40, 143, 41], 1, 1, True),
     ]

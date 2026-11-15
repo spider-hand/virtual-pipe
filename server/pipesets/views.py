@@ -220,7 +220,9 @@ def download_pipeset(request, id):
 @extend_schema(
     operation_id="searchDistricts",
     tags=["districts"],
-    parameters=[OpenApiParameter("q", str, description="Japanese place name")],
+    parameters=[
+        OpenApiParameter("q", str, description="Japanese or romanized place name")
+    ],
     responses={200: DistrictSerializer(many=True), 503: DistrictSearchErrorSerializer},
 )
 @api_view(["GET"])

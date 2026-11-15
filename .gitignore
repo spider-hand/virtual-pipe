@@ -10,4 +10,5 @@ node_modules/
 dist/
 coverage/
 
-/data/
+/data/*
+!/data/municipal_names.csv

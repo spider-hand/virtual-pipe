@@ -7,7 +7,15 @@ import { createTestPlugins } from '@/__tests__/testSetup'
 const district = {
   code: '14104',
   label: '神奈川県 横浜市 中区',
+  labelEn: 'Kanagawa Yokohamashi, Nakaku',
   bounds: [139.5, 35.4, 139.7, 35.5],
+}
+
+const districtResponse = {
+  code: district.code,
+  label: district.label,
+  label_en: district.labelEn,
+  bounds: district.bounds,
 }
 
 afterEach(() => {
@@ -29,7 +37,9 @@ describe('DistrictSearch', () => {
     'should select a district by %s after IME input',
     async (method) => {
       vi.useFakeTimers()
-      const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json([district]))
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json([districtResponse]))
       vi.stubGlobal('fetch', fetch)
       const wrapper = mount(DistrictSearch, { global: { plugins: createTestPlugins() } })
       const input = wrapper.get('input')
@@ -69,6 +79,7 @@ describe('DistrictSearch', () => {
     const latestDistrict = {
       code: '13206',
       label: '東京都 府中市',
+      label_en: 'Tokyo Fuchushi',
       bounds: [139.42, 35.64, 139.53, 35.7],
     }
     const fetch = vi
@@ -87,7 +98,7 @@ describe('DistrictSearch', () => {
 
     expect(wrapper.get('[role="option"]').text()).toBe(latestDistrict.label)
 
-    completeFirstRequest(Response.json([district]))
+    completeFirstRequest(Response.json([districtResponse]))
     await flushPromises()
 
     expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual([

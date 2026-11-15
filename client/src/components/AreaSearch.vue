@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import FormField from '@/components/FormField.vue'
 import type { District, Prefecture } from '@/services'
+import { isLatinQuery } from '@/utils/areaSearch'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -34,6 +35,8 @@ const expanded = computed(
   () => !props.disabled && focused.value && open.value && props.results.length > 0,
 )
 const optionId = (index: number) => `${listId}-${index}`
+const showEnglish = computed(() => isLatinQuery(text.value))
+const displayLabel = (area: Area) => (showEnglish.value ? (area.labelEn ?? area.label) : area.label)
 
 const update = (event: Event) => {
   const value = (event.target as HTMLInputElement).value
@@ -59,7 +62,7 @@ const finishComposition = (event: CompositionEvent) => {
 }
 
 const choose = (area: Area) => {
-  text.value = area.label
+  text.value = displayLabel(area)
   open.value = false
   active.value = -1
   emit('clearSearch')
@@ -146,7 +149,7 @@ const blur = () => {
         @pointerdown.prevent
         @click="choose(area)"
       >
-        {{ area.label }}
+        {{ displayLabel(area) }}
       </li>
     </ul>
     <div v-if="!disabled && focused && open && !expanded" class="area-status" role="status">
