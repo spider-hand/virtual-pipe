@@ -20,6 +20,23 @@ describe('AttributeSetEditor', () => {
     expect(request).not.toHaveBeenCalled()
   })
 
+  it('should explain why geometry cannot be used as an attribute name', async () => {
+    const request = vi.fn<typeof fetch>()
+    vi.stubGlobal('fetch', request)
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
+    await wrapper.get('input').setValue('Mains')
+    const name = wrapper.get('fieldset fieldset input')
+    await name.setValue('geometry')
+    await wrapper.get('select').setValue('boolean')
+
+    await wrapper.get('form').trigger('submit')
+
+    await vi.waitFor(() => expect(name.attributes('aria-invalid')).toBe('true'))
+    expect(wrapper.text()).toContain('The name geometry is reserved for export.')
+    expect(request).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it('should save typed attributes once and start a fresh draft on request', async () => {
     let respond!: (response: Response) => void
     const request = vi.fn<typeof fetch>(() => new Promise((resolve) => (respond = resolve)))

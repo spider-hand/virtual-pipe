@@ -5,6 +5,7 @@ from django.core.validators import RegexValidator
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
+from pipesets.exports import GEOMETRY_COLUMN
 from pipesets.models import AttributeSet, PipeSet
 
 
@@ -94,6 +95,12 @@ class PipeSetCreateErrorSerializer(serializers.Serializer):
 
 class AttributeSerializer(serializers.Serializer):
     name = TextField(validators=[RegexValidator(r"\A[a-z][a-z0-9_]*\Z")])
+
+    def validate_name(self, name):
+        if name == GEOMETRY_COLUMN:
+            raise serializers.ValidationError("The geometry column is reserved.")
+
+        return name
 
 
 class StringAttributeSerializer(AttributeSerializer):

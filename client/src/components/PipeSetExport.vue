@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import AttributePreview from '@/components/AttributePreview.vue'
 import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
+import { usePipeSetDownload } from '@/composables/usePipeSetDownload'
 import type { PipeSetSummary } from '@/services'
 
 defineProps<{ selectedSet?: PipeSetSummary }>()
@@ -14,6 +15,7 @@ const formats = [
   { value: 'csv', label: 'CSV' },
   { value: 'parquet', label: 'Parquet' },
 ] as const
+const { download, pending, failed } = usePipeSetDownload()
 const format = ref<(typeof formats)[number]['value']>('csv')
 </script>
 
@@ -34,8 +36,15 @@ const format = ref<(typeof formats)[number]['value']>('csv')
     </FormField>
 
     <div class="download">
-      <button type="button" disabled>{{ t('components.PipeSetExport.action') }}</button>
-      <p>{{ t('components.PipeSetExport.unavailable') }}</p>
+      <button
+        type="button"
+        :disabled="!selectedSet || pending"
+        @click="selectedSet && download(selectedSet.id, format)"
+      >
+        {{ t('components.PipeSetExport.action') }}
+      </button>
+      <p v-if="pending" role="status">{{ t('components.PipeSetExport.preparing') }}</p>
+      <p v-if="failed" role="alert">{{ t('components.PipeSetExport.failed') }}</p>
     </div>
   </div>
 </template>
@@ -69,8 +78,24 @@ button {
   padding: var(--space-xs) var(--space-md);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  font: var(--font-button);
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-primary-active);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+button:disabled {
   background: var(--color-primary-disabled);
   color: var(--color-muted);
-  font: var(--font-button);
+  cursor: default;
 }
 </style>

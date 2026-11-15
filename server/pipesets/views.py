@@ -6,6 +6,7 @@ import duckdb
 from django.contrib.gis.db.models import Extent
 from django.db import transaction
 from django.db.models import Case, F, When
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from kombu.exceptions import OperationalError
 from rest_framework import status
@@ -22,6 +23,11 @@ from pipesets.district_catalog import (
     get_prefecture,
     list_prefectures,
     search_districts,
+)
+from pipesets.exports import (
+    EXPORT_CONTENT_TYPES,
+    GEOMETRY_COLUMN,
+    PipeSetExportResponse,
 )
 from pipesets.models import AttributeSet, PipeSet
 from pipesets.serializers import (
@@ -155,6 +161,60 @@ def get_pipeset_status(request, id):
         del pipeset["failure_reason"]
 
     return Response(PipeSetStatusSerializer(pipeset).data)
+
+
+@extend_schema(
+    operation_id="downloadPipeSet",
+    tags=["pipesets"],
+    parameters=[
+        OpenApiParameter(
+            "file_format",
+            str,
+            required=True,
+            enum=list(EXPORT_CONTENT_TYPES),
+            description="File format to download.",
+        ),
+        OpenApiParameter(
+            "id", UUID, location=OpenApiParameter.PATH, description="The pipe-set ID."
+        ),
+        OpenApiParameter(
+            "Content-Disposition",
+            str,
+            location=OpenApiParameter.HEADER,
+            response=[200],
+            description="Attachment filename based on the saved pipe-set name.",
+        ),
+    ],
+    responses={
+        **{
+            (200, content_type): OpenApiTypes.BINARY
+            for content_type in EXPORT_CONTENT_TYPES.values()
+        },
+        400: OpenApiResponse(description="Missing or unsupported file format."),
+        404: OpenApiResponse(description="Pipe set not found."),
+        409: OpenApiResponse(description="Pipe set cannot be exported."),
+    },
+)
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def download_pipeset(request, id):
+    file_format = request.query_params.get("file_format")
+    if file_format not in EXPORT_CONTENT_TYPES:
+        return Response({"detail": "Choose csv or parquet."}, status=400)
+
+    pipeset = PipeSet.objects.select_related("attribute_set").filter(pk=id).first()
+    if pipeset is None:
+        return Response({"detail": "Pipe set not found."}, status=404)
+
+    if pipeset.status != PipeSet.Status.SUCCEEDED:
+        return Response({"detail": "Pipe set is not ready for export."}, status=409)
+
+    definitions = pipeset.attribute_set.attributes if pipeset.attribute_set else []
+    if any(definition["name"] == GEOMETRY_COLUMN for definition in definitions):
+        return Response({"detail": "The geometry column is reserved."}, status=409)
+
+    return PipeSetExportResponse(pipeset, definitions, file_format)
 
 
 @extend_schema(

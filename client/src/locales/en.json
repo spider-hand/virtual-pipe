@@ -54,7 +54,8 @@
       "noDefinitions": "This pipe set has no attribute definitions.",
       "format": "File format",
       "action": "Export",
-      "unavailable": "Downloads are unavailable in this release."
+      "preparing": "Preparing download…",
+      "failed": "Could not export the pipe set. Try again."
     },
     "PipeSetGenerator": {
       "areaType": "Area type",
@@ -101,6 +102,7 @@
       "save": "Save Attribute Set",
       "nameRequired": "Enter a name.",
       "duplicateName": "Use a different attribute name.",
+      "reservedName": "The name geometry is reserved for export.",
       "invalidName": "Start with a lowercase letter. Use only lowercase English letters, digits, and underscores.",
       "choicesRequired": "Enter at least one value.",
       "boundsRequired": "Enter both a valid minimum and maximum.",

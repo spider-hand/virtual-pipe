@@ -179,3 +179,17 @@ def test_create_attribute_set_rejects_invalid_definitions(client, attributes):
 
     assert response.status_code == 400
     assert not AttributeSet.objects.exists()
+
+
+def test_create_attribute_set_rejects_the_reserved_geometry_name(client):
+    response = client.post(
+        reverse("attribute-sets"),
+        {"name": "Mains", "attributes": [{"name": "geometry", "type": "boolean"}]},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["attributes"][0]["name"] == [
+        "The geometry column is reserved."
+    ]
+    assert not AttributeSet.objects.exists()

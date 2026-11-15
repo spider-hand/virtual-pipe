@@ -57,6 +57,8 @@ const nameRule = (rows: Row[], row: Row, index: number) => {
     return submitAttempted.value || row.nameTouched
       ? t('components.AttributeSetEditor.nameRequired')
       : true
+  if (name === 'geometry') return t('components.AttributeSetEditor.reservedName')
+
   if (rows.some((other, otherIndex) => otherIndex !== index && other.name.trim() === name)) {
     return t('components.AttributeSetEditor.duplicateName')
   }

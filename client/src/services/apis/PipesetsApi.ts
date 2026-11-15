@@ -46,6 +46,17 @@ export interface CreatePipeSetRequest {
     pipeSetCreate: PipeSetCreate;
 }
 
+export interface DownloadPipeSetRequest {
+    /**
+     * File format to download.
+     */
+    fileFormat: DownloadPipeSetFileFormatEnum;
+    /**
+     * The pipe-set ID.
+     */
+    id: string;
+}
+
 export interface GetPipeSetStatusRequest {
     /**
      * The submitted pipe-set ID.
@@ -100,6 +111,60 @@ export class PipesetsApi extends runtime.BaseAPI {
      */
     async createPipeSet(requestParameters: CreatePipeSetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PipeSetAccepted> {
         const response = await this.createPipeSetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for downloadPipeSet without sending the request
+     */
+    async downloadPipeSetRequestOpts(requestParameters: DownloadPipeSetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['fileFormat'] == null) {
+            throw new runtime.RequiredError(
+                'fileFormat',
+                'Required parameter "fileFormat" was null or undefined when calling downloadPipeSet().'
+            );
+        }
+
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling downloadPipeSet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['fileFormat'] != null) {
+            queryParameters['file_format'] = requestParameters['fileFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/pipesets/{id}/export/`;
+        urlPath = urlPath.replace('{id}', encodeURIComponent(String(requestParameters['id'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async downloadPipeSetRaw(requestParameters: DownloadPipeSetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<runtime.HttpFile>> {
+        const requestOptions = await this.downloadPipeSetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.BlobApiResponse(response);
+    }
+
+    /**
+     */
+    async downloadPipeSet(requestParameters: DownloadPipeSetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.HttpFile> {
+        const response = await this.downloadPipeSetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -182,3 +247,12 @@ export class PipesetsApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const DownloadPipeSetFileFormatEnum = {
+    Csv: 'csv',
+    Parquet: 'parquet',
+} as const;
+export type DownloadPipeSetFileFormatEnum = typeof DownloadPipeSetFileFormatEnum[keyof typeof DownloadPipeSetFileFormatEnum];

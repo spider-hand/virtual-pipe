@@ -54,7 +54,8 @@
       "noDefinitions": "この管路セットには属性定義がありません。",
       "format": "ファイル形式",
       "action": "エクスポート",
-      "unavailable": "このバージョンではダウンロードできません。"
+      "preparing": "ダウンロードを準備中…",
+      "failed": "管路セットをエクスポートできませんでした。もう一度お試しください。"
     },
     "PipeSetGenerator": {
       "areaType": "対象区域の種類",
@@ -101,6 +102,7 @@
       "save": "属性セットを保存",
       "nameRequired": "名前を入力してください。",
       "duplicateName": "重複しない属性名を入力してください。",
+      "reservedName": "geometry はエクスポート用の予約名です。",
       "invalidName": "半角英小文字で始め、半角英小文字・数字・アンダースコアのみを使用してください。",
       "choicesRequired": "値を1つ以上入力してください。",
       "boundsRequired": "有効な最小値と最大値を入力してください。",

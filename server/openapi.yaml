@@ -167,6 +167,53 @@ paths:
           description: ''
         '404':
           description: Pipe set not found.
+  /api/pipesets/{id}/export/:
+    get:
+      operationId: downloadPipeSet
+      parameters:
+      - in: query
+        name: file_format
+        schema:
+          type: string
+          enum:
+          - csv
+          - parquet
+        description: File format to download.
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The pipe-set ID.
+        required: true
+      tags:
+      - pipesets
+      security:
+      - {}
+      responses:
+        '200':
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: Attachment filename based on the saved pipe-set name.
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.apache.parquet:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '400':
+          description: Missing or unsupported file format.
+        '404':
+          description: Pipe set not found.
+        '409':
+          description: Pipe set cannot be exported.
   /api/prefectures/:
     get:
       operationId: listPrefectures
