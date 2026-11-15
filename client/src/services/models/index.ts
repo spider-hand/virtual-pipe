@@ -23,6 +23,8 @@ export * from './PipeSetCreateError';
 export * from './PipeSetStatus';
 export * from './PipeSetStatusEnum';
 export * from './PipeSetSummary';
+export * from './Prefecture';
+export * from './PrefectureSearchError';
 export * from './StatusEnum';
 export * from './StringAttribute';
 export * from './StringAttributeTypeEnum';

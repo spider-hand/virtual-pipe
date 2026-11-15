@@ -17,7 +17,7 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from pipesets.district_catalog import get_district, search_districts
+from pipesets.district_catalog import get_district, search_districts, search_prefectures
 from pipesets.models import AttributeSet, PipeSet
 from pipesets.serializers import (
     AttributeSetCreateSerializer,
@@ -29,6 +29,8 @@ from pipesets.serializers import (
     PipeSetCreateSerializer,
     PipeSetStatusSerializer,
     PipeSetSummarySerializer,
+    PrefectureSearchErrorSerializer,
+    PrefectureSerializer,
 )
 from pipesets.tasks import generate_pipeset
 
@@ -150,6 +152,28 @@ def get_pipeset_status(request, id):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def districts(request):
+    return _search_areas(request, search_districts, DistrictSerializer, "District")
+
+
+@extend_schema(
+    operation_id="searchPrefectures",
+    tags=["prefectures"],
+    parameters=[OpenApiParameter("q", str, description="Japanese place name")],
+    responses={
+        200: PrefectureSerializer(many=True),
+        503: PrefectureSearchErrorSerializer,
+    },
+)
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def prefectures(request):
+    return _search_areas(
+        request, search_prefectures, PrefectureSerializer, "Prefecture"
+    )
+
+
+def _search_areas(request, search, serializer, area_name):
     query = "".join(
         unicodedata.normalize("NFKC", request.query_params.get("q", "")).split()
     )
@@ -158,14 +182,14 @@ def districts(request):
         return Response([])
 
     try:
-        matches = search_districts(query)
+        matches = search(query)
     except duckdb.Error:
-        logger.exception("Could not query the district catalog")
+        logger.exception("Could not query the %s catalog", area_name.lower())
     else:
         if matches is not None:
-            return Response(DistrictSerializer(matches, many=True).data)
+            return Response(serializer(matches, many=True).data)
 
-    return Response({"detail": "District search is unavailable."}, status=503)
+    return Response({"detail": f"{area_name} search is unavailable."}, status=503)
 
 
 @extend_schema(

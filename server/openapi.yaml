@@ -167,6 +167,34 @@ paths:
           description: ''
         '404':
           description: Pipe set not found.
+  /api/prefectures/:
+    get:
+      operationId: searchPrefectures
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Japanese place name
+      tags:
+      - prefectures
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Prefecture'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrefectureSearchError'
+          description: ''
 components:
   schemas:
     AttributeDefinition:
@@ -445,6 +473,31 @@ components:
       - bounds
       - id
       - name
+    Prefecture:
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        bounds:
+          type: array
+          items:
+            type: number
+            format: double
+          maxItems: 4
+          minItems: 4
+      required:
+      - bounds
+      - code
+      - label
+    PrefectureSearchError:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     StatusEnum:
       enum:
       - ok

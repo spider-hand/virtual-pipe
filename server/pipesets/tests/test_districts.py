@@ -1,5 +1,9 @@
+import json
+
 import duckdb
 import pytest
+
+from pipesets import district_catalog as catalog_builder
 
 
 @pytest.fixture
@@ -87,3 +91,74 @@ def test_search_reports_unavailable_when_catalog_is_missing(
 
     assert client.get("/api/districts/", {"q": "府中市"}).status_code == 503
     assert client.get("/api/health/").status_code == 200
+
+
+def test_catalog_dissolves_districts_and_preserves_islands_and_prefecture_borders(
+    tmp_path, monkeypatch
+):
+    source = tmp_path / "boundaries.geojson"
+    catalog = tmp_path / "areas.duckdb"
+    monkeypatch.setattr(catalog_builder, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(catalog_builder, "SOURCE", source)
+    monkeypatch.setattr(catalog_builder, "CATALOG", catalog)
+
+    features = []
+    for prefecture, municipality, code, west in [
+        ("北海道", "試験市", "01001", 140),
+        ("北海道", "試験町", "01002", 141),
+        ("北海道", "", "", 144),
+        ("青森県", "試験村", "02001", 142),
+    ]:
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "N03_001": prefecture,
+                    "N03_003": "",
+                    "N03_004": municipality,
+                    "N03_005": "",
+                    "N03_007": code,
+                },
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [west, 40],
+                            [west + 1, 40],
+                            [west + 1, 41],
+                            [west, 41],
+                            [west, 40],
+                        ]
+                    ],
+                },
+            }
+        )
+    source.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
+
+    catalog_builder.prepare_catalog()
+
+    with duckdb.connect(str(catalog), read_only=True) as connection:
+        connection.execute("LOAD spatial")
+        assert connection.execute(
+            "SELECT code FROM districts ORDER BY code"
+        ).fetchall() == [
+            ("01001",),
+            ("01002",),
+            ("02001",),
+        ]
+        rows = connection.execute(
+            """
+            SELECT code, label, bounds, ST_NumGeometries(boundary), ST_Area(boundary),
+                ST_IsValid(boundary)
+            FROM (
+                SELECT *, ST_GeomFromWKB(boundary_wkb) AS boundary
+                FROM prefectures
+            )
+            ORDER BY code
+            """
+        ).fetchall()
+
+    assert rows == [
+        ("01", "北海道", [140, 40, 145, 41], 2, 3, True),
+        ("02", "青森県", [142, 40, 143, 41], 1, 1, True),
+    ]

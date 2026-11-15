@@ -8,7 +8,7 @@ from rest_framework import serializers
 from pipesets.models import AttributeSet, PipeSet
 
 
-class DistrictSerializer(serializers.Serializer):
+class AreaSearchResultSerializer(serializers.Serializer):
     code = serializers.CharField()
     label = serializers.CharField()
     bounds = serializers.ListField(
@@ -16,8 +16,20 @@ class DistrictSerializer(serializers.Serializer):
     )
 
 
+class DistrictSerializer(AreaSearchResultSerializer):
+    pass
+
+
+class PrefectureSerializer(AreaSearchResultSerializer):
+    pass
+
+
 class DistrictSearchErrorSerializer(serializers.Serializer):
     detail = serializers.CharField()
+
+
+class PrefectureSearchErrorSerializer(DistrictSearchErrorSerializer):
+    pass
 
 
 class TextField(serializers.CharField):
