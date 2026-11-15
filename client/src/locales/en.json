@@ -14,7 +14,16 @@
       "attributes": "Attribute Set",
       "generate": "Generate Pipes"
     },
+    "PipeSetSelector": {
+      "label": "Pipe set",
+      "loading": "Loading pipe sets…",
+      "empty": "No pipe sets yet",
+      "loadFailed": "Could not load pipe sets."
+    },
     "PipeSetGenerator": {
+      "name": "Pipe set name",
+      "nameRequired": "Enter a pipe set name.",
+      "nameTooLong": "Use 255 characters or fewer.",
       "attributeSet": "Attribute set",
       "selectSet": "Select an attribute set",
       "loading": "Loading attribute sets…",

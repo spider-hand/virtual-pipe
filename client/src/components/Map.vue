@@ -7,9 +7,11 @@ import {
 } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 
+import PipeSetSelector from '@/components/PipeSetSelector.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
+import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import type { District } from '@/services'
 
 defineOptions({ name: 'PipeMap' })
@@ -18,14 +20,58 @@ const osmAttribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 const sidebarOpen = ref(true)
 const container = useTemplateRef<HTMLDivElement>('container')
+const { sets, loading, failed, load } = usePipeSetsQuery()
+const selectedId = ref('')
 let map: MapLibreMap | undefined
 let mapReady = false
-let pipesetId: string | undefined
 let districtBounds: [number, number, number, number] | null = null
 
-const showPipeSet = (id: string) => {
-  pipesetId = id
-  if (!map || !mapReady) return
+const refreshPipeSets = async (preferredId?: string) => {
+  const result = await load()
+  if (!result) return
+
+  const target = preferredId ?? selectedId.value
+  selectedId.value = result.find(({ id }) => id === target)?.id ?? result[0]?.id ?? ''
+}
+
+const selectGeneratedPipeSet = (id: string) => {
+  void refreshPipeSets(id)
+}
+
+const fitMapBounds = (bounds: [number, number, number, number]) => {
+  if (!map) return
+
+  const layout = container.value?.parentElement
+  const sidebar = layout?.querySelector('aside')?.getBoundingClientRect()
+  const sidebarRight = sidebar?.right ?? 0
+  const controlsBottom = Math.max(
+    sidebar?.bottom ?? 0,
+    layout?.querySelector('.selector')?.getBoundingClientRect().bottom ?? 0,
+  )
+  const width = container.value?.clientWidth ?? 0
+  const height = container.value?.clientHeight ?? 0
+
+  if (width - sidebarRight >= 360) {
+    map.fitBounds(bounds, {
+      padding: { top: 48, right: 48, bottom: 48, left: sidebarRight + 48 },
+    })
+  } else {
+    const padding =
+      height - controlsBottom >= 150
+        ? { top: controlsBottom + 24, right: 48, bottom: 48, left: 48 }
+        : 48
+    map.fitBounds(bounds, { padding })
+  }
+}
+
+const showPipeSet = () => {
+  if (!map || !mapReady || !selectedId.value) return
+
+  const id = selectedId.value
+  const [west, south, east, north] = sets.value.find((set) => set.id === id)?.bounds ?? []
+  if (west !== undefined && south !== undefined && east !== undefined && north !== undefined) {
+    fitMapBounds([west, south, east, north])
+  }
 
   const tiles = [
     `${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${encodeURIComponent(id)}`,
@@ -46,6 +92,8 @@ const showPipeSet = (id: string) => {
     paint: { 'line-color': '#17608a', 'line-width': 2 },
   })
 }
+
+watch(selectedId, showPipeSet)
 
 const showDistrictBounds = () => {
   const source = map?.getSource<GeoJSONSource>('district-bounds')
@@ -80,15 +128,7 @@ const selectDistrict = (district: District | null) => {
 
   showDistrictBounds()
 
-  if (districtBounds && map) {
-    const sidebar = container.value?.parentElement?.querySelector('aside')
-    const sidebarWidth = sidebar?.getBoundingClientRect().right ?? 0
-    const width = container.value?.clientWidth ?? 0
-    const padding =
-      width - sidebarWidth >= 360 ? { top: 48, right: 48, bottom: 48, left: sidebarWidth + 48 } : 48
-
-    map.fitBounds(districtBounds, { padding })
-  }
+  if (districtBounds) fitMapBounds(districtBounds)
 }
 
 onMounted(() => {
@@ -146,8 +186,10 @@ onMounted(() => {
   map.once('style.load', () => {
     mapReady = true
     showDistrictBounds()
-    if (pipesetId) showPipeSet(pipesetId)
+    showPipeSet()
   })
+
+  void refreshPipeSets()
 })
 
 onUnmounted(() => map?.remove())
@@ -155,12 +197,22 @@ onUnmounted(() => map?.remove())
 
 <template>
   <div class="map-layout">
-    <PipeSidebar
-      v-model:open="sidebarOpen"
-      @district-change="selectDistrict"
-      @pipeset-ready="showPipeSet"
-    />
     <div ref="container" class="map-canvas"></div>
+    <div class="map-tools">
+      <PipeSetSelector
+        v-model="selectedId"
+        class="selector"
+        :sets="sets"
+        :loading="loading"
+        :failed="failed"
+      />
+      <PipeSidebar
+        v-model:open="sidebarOpen"
+        class="pipe-tools"
+        @district-change="selectDistrict"
+        @pipeset-ready="selectGeneratedPipeSet"
+      />
+    </div>
   </div>
 </template>
 
@@ -174,5 +226,46 @@ onUnmounted(() => map?.remove())
   position: absolute;
   inset: 0;
   z-index: 0;
+}
+
+.map-tools {
+  position: absolute;
+  inset: var(--space-md);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 392px) minmax(0, 264px);
+  grid-template-rows: minmax(0, 1fr);
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--space-sm);
+  pointer-events: none;
+}
+
+.selector {
+  grid-area: 1 / 2;
+  pointer-events: auto;
+}
+
+.pipe-tools {
+  grid-area: 1 / 1;
+}
+
+@media (max-width: 700px) {
+  .map-tools {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .selector {
+    grid-area: 1 / 1;
+    justify-self: end;
+    width: min(100%, 264px);
+  }
+
+  .pipe-tools {
+    grid-area: 2 / 1;
+    width: min(100%, 392px);
+    max-height: min(100%, 45dvh);
+  }
 }
 </style>

@@ -20,6 +20,10 @@ import { mapValues } from '../runtime';
  */
 export interface PipeSetCreate {
     /**
+     * Display name for the generated pipe set.
+     */
+    name: string;
+    /**
      * 
      */
     districtId: string;
@@ -33,6 +37,7 @@ export interface PipeSetCreate {
  * Check if a given object implements the PipeSetCreate interface.
  */
 export function instanceOfPipeSetCreate(value: object): value is PipeSetCreate {
+    if (!('name' in value) || value['name'] === undefined) return false;
     if ((!('districtId' in (value as Record<string, any>)) && !('district_id' in (value as Record<string, any>))) || ((value as Record<string, any>)['districtId'] === undefined && (value as Record<string, any>)['district_id'] === undefined)) return false;
     if ((!('attributeSetId' in (value as Record<string, any>)) && !('attribute_set_id' in (value as Record<string, any>))) || ((value as Record<string, any>)['attributeSetId'] === undefined && (value as Record<string, any>)['attribute_set_id'] === undefined)) return false;
     return true;
@@ -48,6 +53,7 @@ export function PipeSetCreateFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
+        'name': json['name'],
         'districtId': json['district_id'],
         'attributeSetId': json['attribute_set_id'],
     };
@@ -64,6 +70,7 @@ export function PipeSetCreateToJSONTyped(value?: PipeSetCreate | null, ignoreDis
 
     return {
         
+        'name': value['name'],
         'district_id': value['districtId'],
         'attribute_set_id': value['attributeSetId'],
     };

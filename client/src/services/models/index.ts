@@ -22,6 +22,7 @@ export * from './PipeSetCreate';
 export * from './PipeSetCreateError';
 export * from './PipeSetStatus';
 export * from './PipeSetStatusEnum';
+export * from './PipeSetSummary';
 export * from './StatusEnum';
 export * from './StringAttribute';
 export * from './StringAttributeTypeEnum';

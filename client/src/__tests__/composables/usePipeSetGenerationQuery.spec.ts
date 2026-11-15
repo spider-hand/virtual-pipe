@@ -5,7 +5,11 @@ import { effectScope } from 'vue'
 import { usePipeSetGenerationQuery } from '@/composables/usePipeSetGenerationQuery'
 
 const id = '7fc19571-3276-49e3-9ef0-4ccb7cd1d599'
-const selection = { districtId: '01404', attributeSetId: '4984ce93-5b72-473c-ae9e-950b46d4f9c8' }
+const selection = {
+  name: 'Demo mains',
+  districtId: '01404',
+  attributeSetId: '4984ce93-5b72-473c-ae9e-950b46d4f9c8',
+}
 
 describe('usePipeSetGenerationQuery', () => {
   const onSucceeded = vi.fn<(id: string) => void>()

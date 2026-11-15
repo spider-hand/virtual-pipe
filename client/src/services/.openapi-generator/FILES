@@ -26,6 +26,7 @@ models/PipeSetCreate.ts
 models/PipeSetCreateError.ts
 models/PipeSetStatus.ts
 models/PipeSetStatusEnum.ts
+models/PipeSetSummary.ts
 models/StatusEnum.ts
 models/StringAttribute.ts
 models/StringAttributeTypeEnum.ts

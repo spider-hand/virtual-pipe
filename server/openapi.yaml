@@ -89,6 +89,21 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
           description: ''
   /api/pipesets/:
+    get:
+      operationId: listPipeSets
+      tags:
+      - pipesets
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PipeSetSummary'
+          description: ''
     post:
       operationId: createPipeSet
       tags:
@@ -362,6 +377,10 @@ components:
     PipeSetCreate:
       type: object
       properties:
+        name:
+          type: string
+          description: Display name for the generated pipe set.
+          maxLength: 255
         district_id:
           type: string
           pattern: ^[0-9]{5}$
@@ -373,6 +392,7 @@ components:
       required:
       - attribute_set_id
       - district_id
+      - name
     PipeSetCreateError:
       type: object
       properties:
@@ -403,6 +423,28 @@ components:
         * `pending` - Pending
         * `succeeded` - Succeeded
         * `failed` - Failed
+    PipeSetSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        bounds:
+          type: array
+          items:
+            type: number
+            format: double
+          nullable: true
+          description: West, south, east, north in WGS84 degrees, or null for a set
+            without pipes.
+          maxItems: 4
+          minItems: 4
+      required:
+      - bounds
+      - id
+      - name
     StatusEnum:
       enum:
       - ok

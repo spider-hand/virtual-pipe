@@ -3,10 +3,12 @@ import { computed, ref, shallowRef, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import DistrictSearch from '@/components/DistrictSearch.vue'
+import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import { usePipeSetGenerationQuery } from '@/composables/usePipeSetGenerationQuery'
 import type { AttributeDefinition, District } from '@/services'
+import { getSetNameError } from '@/validation/setName'
 
 const { t } = useI18n({ useScope: 'global' })
 const props = defineProps<{ active: boolean }>()
@@ -20,12 +22,27 @@ const { status, busy, submit } = usePipeSetGenerationQuery({
   onSucceeded: (id) => emit('pipesetReady', id),
 })
 const selectedId = ref('')
+const name = ref('')
+const nameTouched = ref(false)
+const nameError = computed(() => {
+  const error = getSetNameError(name.value, nameTouched.value)
+  if (error === 'required') return t('components.PipeSetGenerator.nameRequired')
+  if (error === 'tooLong') return t('components.PipeSetGenerator.nameTooLong')
+  return undefined
+})
 const options = computed(() => [
   { value: '', label: t('components.PipeSetGenerator.selectSet'), disabled: true },
   ...sets.value.map(({ id, name }) => ({ value: id, label: name })),
 ])
 const district = shallowRef<District | null>(null)
 const selectedSet = computed(() => sets.value.find((set) => set.id === selectedId.value))
+const selection = computed(() => {
+  if (busy.value || loading.value || failed.value || !selectedSet.value || !district.value) {
+    return undefined
+  }
+
+  return { attributeSetId: selectedSet.value.id, districtId: district.value.code }
+})
 
 watch(
   () => props.active,
@@ -62,22 +79,40 @@ const setDistrict = (next: District | null) => {
 }
 
 const save = () => {
-  if (!selectedSet.value || !district.value) return
+  nameTouched.value = true
+  if (nameError.value || !selection.value) return
 
-  void submit({ attributeSetId: selectedSet.value.id, districtId: district.value.code })
+  void submit({ name: name.value.trim(), ...selection.value })
 }
 </script>
 
 <template>
-  <div class="generator">
+  <form class="generator" novalidate @submit.prevent="save">
     <div class="set-picker">
-      <label :for="`${id}-set`">{{ t('components.PipeSetGenerator.attributeSet') }}</label>
-      <SelectField
-        :id="`${id}-set`"
-        v-model="selectedId"
-        :options="options"
-        :disabled="busy || loading || failed || sets.length === 0"
-      />
+      <FormField :label="t('components.PipeSetGenerator.name')">
+        <input
+          class="text-input"
+          v-model="name"
+          :disabled="busy"
+          :aria-invalid="Boolean(nameError) || undefined"
+          :aria-describedby="nameError ? `${id}-name-error` : undefined"
+          required
+          @blur="nameTouched = true"
+        />
+      </FormField>
+      <p v-if="nameError" :id="`${id}-name-error`" class="error" role="alert">
+        {{ nameError }}
+      </p>
+    </div>
+
+    <div class="set-picker">
+      <FormField :label="t('components.PipeSetGenerator.attributeSet')">
+        <SelectField
+          v-model="selectedId"
+          :options="options"
+          :disabled="busy || loading || failed || sets.length === 0"
+        />
+      </FormField>
       <p v-if="loading" role="status">{{ t('components.PipeSetGenerator.loading') }}</p>
       <p v-else-if="failed" role="alert">{{ t('components.PipeSetGenerator.loadFailed') }}</p>
       <p v-else-if="sets.length === 0" role="status">
@@ -98,16 +133,11 @@ const save = () => {
 
     <DistrictSearch :disabled="busy" @select="setDistrict" @clear-selection="setDistrict(null)" />
 
-    <button
-      class="save"
-      type="button"
-      :disabled="busy || !selectedSet || !district || loading || failed"
-      @click="save"
-    >
+    <button class="save" type="submit" :disabled="!selection">
       {{ t('components.PipeSetGenerator.save') }}
     </button>
     <p v-if="status !== 'idle'" role="status">{{ t(`components.PipeSetGenerator.${status}`) }}</p>
-  </div>
+  </form>
 </template>
 
 <style scoped>
@@ -123,10 +153,13 @@ const save = () => {
   gap: var(--space-xs);
 }
 
-label,
 h2 {
   margin: 0;
   font: var(--font-title-sm);
+}
+
+.error {
+  color: color-mix(in srgb, var(--color-error) 68%, var(--color-ink));
 }
 
 .preview {

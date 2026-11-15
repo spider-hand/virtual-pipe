@@ -36,6 +36,9 @@ class UUIDTextField(serializers.UUIDField):
 
 
 class PipeSetCreateSerializer(serializers.Serializer):
+    name = TextField(
+        max_length=255, help_text="Display name for the generated pipe set."
+    )
     district_id = TextField(
         trim_whitespace=False,
         min_length=5,
@@ -47,6 +50,17 @@ class PipeSetCreateSerializer(serializers.Serializer):
 
 class PipeSetAcceptedSerializer(serializers.Serializer):
     id = serializers.UUIDField()
+
+
+class PipeSetSummarySerializer(PipeSetAcceptedSerializer):
+    name = serializers.CharField()
+    bounds = serializers.ListField(
+        child=serializers.FloatField(),
+        min_length=4,
+        max_length=4,
+        allow_null=True,
+        help_text="West, south, east, north in WGS84 degrees, or null for a set without pipes.",
+    )
 
 
 class PipeSetStatusSerializer(PipeSetAcceptedSerializer):

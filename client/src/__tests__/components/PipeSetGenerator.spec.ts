@@ -26,12 +26,35 @@ describe('PipeSetGenerator', () => {
   it('should render the default state', () => {
     const wrapper = mount(PipeSetGenerator, { global, props: { active: false } })
 
+    expect(wrapper.get('input[required]').element.value).toBe('')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.get('select').element.value).toBe('')
     expect(wrapper.find('h2').exists()).toBe(false)
     expect(wrapper.get('button').element.disabled).toBe(true)
 
     wrapper.unmount()
   })
+
+  it.each(['', '   '])(
+    'should show a required error on leaving the name field with %j',
+    async (value) => {
+      const wrapper = mount(PipeSetGenerator, { global, props: { active: false } })
+      const name = wrapper.get('input[required]')
+
+      await name.setValue(value)
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      await name.trigger('blur')
+
+      const error = wrapper.get('[role="alert"]')
+      expect(error.text()).toBe('Enter a pipe set name.')
+      expect(name.attributes('aria-invalid')).toBe('true')
+      expect(name.attributes('aria-describedby')).toBe(error.attributes('id'))
+
+      await name.setValue('Demo mains')
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      wrapper.unmount()
+    },
+  )
 
   it('should show an error and disable selection when the attribute sets fail to load', async () => {
     const fetch = vi
@@ -97,7 +120,7 @@ describe('PipeSetGenerator', () => {
     wrapper.unmount()
   })
 
-  it('should submit the selected IDs and preserve the selections if submission fails', async () => {
+  it('should require a valid name and preserve the form if submission fails', async () => {
     vi.useFakeTimers()
     const fetch = vi
       .fn<typeof globalThis.fetch>()
@@ -108,6 +131,7 @@ describe('PipeSetGenerator', () => {
     const wrapper = mount(PipeSetGenerator, { global, props: { active: true } })
     await flushPromises()
     const select = wrapper.get('select')
+    const name = wrapper.get('input[required]')
     const search = wrapper.get('input[role="combobox"]')
     const save = wrapper.get('button.save')
 
@@ -118,19 +142,35 @@ describe('PipeSetGenerator', () => {
     await vi.advanceTimersByTimeAsync(200)
     await wrapper.get('[role="option"]').trigger('click')
     expect(save.element.disabled).toBe(false)
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.get('[role="alert"]').text()).toBe('Enter a pipe set name.')
+    expect(fetch).toHaveBeenCalledTimes(2)
 
-    await save.trigger('click')
+    await name.setValue('管'.repeat(256))
+    expect(wrapper.get('[role="alert"]').text()).toBe('Use 255 characters or fewer.')
+    await wrapper.get('form').trigger('submit')
+    expect(fetch).toHaveBeenCalledTimes(2)
+
+    await name.setValue('  Demo mains  ')
+    expect(save.element.disabled).toBe(false)
+
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(fetch).toHaveBeenLastCalledWith(
       '/api/pipesets/',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ district_id: district.code, attribute_set_id: set.id }),
+        body: JSON.stringify({
+          name: 'Demo mains',
+          district_id: district.code,
+          attribute_set_id: set.id,
+        }),
       }),
     )
     expect(wrapper.get('[role="status"]').text()).toBe('Could not submit the pipe set. Try again.')
     expect(select.element.value).toBe(set.id)
     expect(search.element.value).toBe(district.label)
+    expect(name.element.value).toBe('  Demo mains  ')
     expect(save.element.disabled).toBe(false)
 
     await search.setValue('北海道')

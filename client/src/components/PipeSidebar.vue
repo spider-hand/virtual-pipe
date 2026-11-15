@@ -54,7 +54,7 @@ const moveTab = async (event: KeyboardEvent) => {
 </script>
 
 <template>
-  <div class="sidebar-overlay" :class="{ 'is-open': open }">
+  <div class="sidebar-overlay">
     <button
       v-show="!open"
       ref="launcher"
@@ -130,25 +130,24 @@ const moveTab = async (event: KeyboardEvent) => {
 
 <style scoped>
 .sidebar-overlay {
-  position: absolute;
-  inset: var(--space-md) auto auto var(--space-md);
-  z-index: 2;
-}
-
-.sidebar-overlay.is-open {
-  width: min(392px, calc(100% - 2 * var(--space-md)));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-height: 100%;
 }
 
 .sidebar {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  max-height: calc(100dvh - 2 * var(--space-md));
+  align-self: stretch;
+  width: 100%;
   overflow: hidden;
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-canvas);
   color: var(--color-ink);
+  pointer-events: auto;
 }
 
 .sidebar-header {
@@ -198,6 +197,7 @@ button {
 .launcher {
   border: 1px solid var(--color-hairline);
   background: var(--color-canvas);
+  pointer-events: auto;
 }
 
 button:hover {

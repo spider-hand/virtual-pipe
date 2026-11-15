@@ -90,17 +90,47 @@ def test_create_pipeset_commits_the_pending_set_before_publishing(
 
     response = client.post(
         "/api/pipesets/",
-        {"district_id": DISTRICT_ID, "attribute_set_id": str(attribute_set.id)},
+        {
+            "name": "  Demo mains  ",
+            "district_id": DISTRICT_ID,
+            "attribute_set_id": str(attribute_set.id),
+        },
         content_type="application/json",
     )
 
     assert response.status_code == 202
     assert published == [response.json()["id"]]
     pipe_set = PipeSet.objects.get(pk=published[0])
-    assert pipe_set.name == f"{DISTRICT_LABEL} — Mains"
+    assert pipe_set.name == "Demo mains"
     assert pipe_set.district_id == DISTRICT_ID
     assert pipe_set.attribute_set == attribute_set
     assert not pipe_set.pipe_set.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("name", ["", "   ", "a" * 256, 123])
+def test_create_pipeset_rejects_invalid_names(client, name):
+    response = client.post(
+        "/api/pipesets/",
+        {"name": name, "district_id": DISTRICT_ID, "attribute_set_id": str(uuid4())},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "name" in response.json()
+    assert not PipeSet.objects.exists()
+
+
+@pytest.mark.django_db
+def test_create_pipeset_requires_a_name(client):
+    response = client.post(
+        "/api/pipesets/",
+        {"district_id": DISTRICT_ID, "attribute_set_id": str(uuid4())},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "name" in response.json()
 
 
 @pytest.mark.django_db
@@ -116,6 +146,7 @@ def test_create_pipeset_commits_the_pending_set_before_publishing(
 )
 def test_create_pipeset_rejects_malformed_ids(client, field, value):
     payload = {
+        "name": "Demo mains",
         "district_id": DISTRICT_ID,
         "attribute_set_id": str(uuid4()),
         field: value,
@@ -138,7 +169,11 @@ def test_create_pipeset_returns_not_found_for_unknown_ids(
 
     response = client.post(
         "/api/pipesets/",
-        {"district_id": district_id, "attribute_set_id": str(attribute_set_id)},
+        {
+            "name": "Demo mains",
+            "district_id": district_id,
+            "attribute_set_id": str(attribute_set_id),
+        },
         content_type="application/json",
     )
 
@@ -155,7 +190,11 @@ def test_create_pipeset_reports_unavailable_catalog(
 
     response = client.post(
         "/api/pipesets/",
-        {"district_id": DISTRICT_ID, "attribute_set_id": str(attribute_set.id)},
+        {
+            "name": "Demo mains",
+            "district_id": DISTRICT_ID,
+            "attribute_set_id": str(attribute_set.id),
+        },
         content_type="application/json",
     )
 
@@ -174,7 +213,11 @@ def test_create_pipeset_records_failure_if_the_broker_is_unavailable(
 
     response = client.post(
         "/api/pipesets/",
-        {"district_id": DISTRICT_ID, "attribute_set_id": str(attribute_set.id)},
+        {
+            "name": "Demo mains",
+            "district_id": DISTRICT_ID,
+            "attribute_set_id": str(attribute_set.id),
+        },
         content_type="application/json",
     )
 

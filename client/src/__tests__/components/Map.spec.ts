@@ -7,6 +7,10 @@ import PipeSidebar from '@/components/PipeSidebar.vue'
 import { createAppI18n } from '@/i18n'
 
 const global = { plugins: [createAppI18n('en')] }
+const newest = { id: 'newest', name: 'Newest', bounds: [139.5, 35.4, 139.7, 35.5] }
+const oldest = { id: 'oldest', name: 'Oldest', bounds: [130.5, 34.4, 130.7, 34.5] }
+const legacy = { id: 'legacy', name: 'Legacy', bounds: null }
+const tileUrl = (id: string) => `${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${id}`
 
 const { fitBounds, setData, setTiles, createMap, onLoad, addSource, addLayer } = vi.hoisted(() => ({
   fitBounds: vi.fn<() => void>(),
@@ -50,6 +54,7 @@ describe('Map', () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(
         Response.json([{ code: '14104', label: '神奈川県 横浜市 中区', bounds }]),
       )
@@ -87,12 +92,43 @@ describe('Map', () => {
     wrapper.unmount()
   })
 
+  it('should start with the newest pipeset and fit the map to another selected pipeset', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(Response.json([newest, oldest, legacy])),
+    )
+    const wrapper = mount(Map, { global })
+    await flushPromises()
+    const picker = wrapper.get('.selector select')
+
+    expect(picker.element.value).toBe(newest.id)
+    expect(addSource).not.toHaveBeenCalled()
+    onLoad.mock.calls[0]![1]()
+    expect(fitBounds).toHaveBeenLastCalledWith(newest.bounds, { padding: 48 })
+    expect(addSource).toHaveBeenCalledWith(
+      'pipes',
+      expect.objectContaining({
+        tiles: [tileUrl(newest.id)],
+      }),
+    )
+
+    await picker.setValue(oldest.id)
+    expect(fitBounds).toHaveBeenLastCalledWith(oldest.bounds, { padding: 48 })
+    expect(setTiles).toHaveBeenLastCalledWith([tileUrl(oldest.id)])
+
+    await picker.setValue(legacy.id)
+    expect(fitBounds).toHaveBeenCalledTimes(2)
+    expect(setTiles).toHaveBeenLastCalledWith([tileUrl(legacy.id)])
+    wrapper.unmount()
+  })
+
   it('should load pipes only after generation succeeds, even with the sidebar closed', async () => {
     vi.useFakeTimers()
     const id = '7fc19571-3276-49e3-9ef0-4ccb7cd1d599'
     const attributeSetId = '4984ce93-5b72-473c-ae9e-950b46d4f9c8'
     const fetch = vi
       .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json([{ id: attributeSetId, name: 'Mains', attributes: [] }]))
       .mockResolvedValueOnce(
         Response.json([{ code: '14104', label: '横浜市', bounds: [139.5, 35.4, 139.7, 35.5] }]),
@@ -100,6 +136,7 @@ describe('Map', () => {
       .mockResolvedValueOnce(Response.json({ id }, { status: 202 }))
       .mockResolvedValueOnce(Response.json({ id, status: 'pending' }))
       .mockResolvedValueOnce(Response.json({ id, status: 'succeeded' }))
+      .mockResolvedValueOnce(Response.json([newest, { ...oldest, id }]))
     vi.stubGlobal('fetch', fetch)
 
     const wrapper = mount(Map, { global })
@@ -110,29 +147,37 @@ describe('Map', () => {
 
     await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
     await flushPromises()
+    const picker = wrapper.get('.selector select')
+    expect(picker.element.disabled).toBe(true)
+    expect(picker.text()).toBe('No pipe sets yet')
     const select = wrapper.get('.generator select')
+    const name = wrapper.get('.generator input[required]')
     const search = wrapper.get('input[role="combobox"]')
+    await name.setValue('Demo mains')
     await select.setValue(attributeSetId)
     await search.trigger('focus')
     await search.setValue('横浜')
     await vi.advanceTimersByTimeAsync(200)
     await wrapper.get('[role="option"]').trigger('click')
     const save = wrapper.get('.generator button')
-    await save.trigger('click')
+    await wrapper.get('form.generator').trigger('submit')
     await flushPromises()
     expect(save.element.disabled).toBe(true)
     expect(select.element.disabled).toBe(true)
+    expect(name.element.disabled).toBe(true)
     expect(search.element.disabled).toBe(true)
 
     await wrapper.get('button[aria-label="Close pipe tools"]').trigger('click')
     await vi.advanceTimersByTimeAsync(10_000)
     expect(addSource).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(10_000)
+    expect(picker.element.value).toBe(id)
+    expect(fitBounds).toHaveBeenLastCalledWith(oldest.bounds, { padding: 48 })
     expect(addSource).toHaveBeenCalledExactlyOnceWith(
       'pipes',
       expect.objectContaining({
         type: 'vector',
-        tiles: [`${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${id}`],
+        tiles: [tileUrl(id)],
       }),
     )
     expect(addLayer).toHaveBeenCalledExactlyOnceWith(
@@ -143,12 +188,28 @@ describe('Map', () => {
       }),
     )
 
-    const nextId = 'b7d35ae3-990c-45ad-9381-8de934f38f38'
-    wrapper.getComponent(PipeSidebar).vm.$emit('pipesetReady', nextId)
-    expect(setTiles).toHaveBeenCalledExactlyOnceWith([
-      `${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${nextId}`,
-    ])
-    expect(addSource).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('should show a load error and keep the current pipes visible when refreshing fails', async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json([oldest]))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const wrapper = mount(Map, { global })
+    await flushPromises()
+    onLoad.mock.calls[0]![1]()
+    const picker = wrapper.get('.selector select')
+
+    wrapper.getComponent(PipeSidebar).vm.$emit('pipesetReady', newest.id)
+    await flushPromises()
+    expect(picker.element.value).toBe(oldest.id)
+    expect(setTiles).not.toHaveBeenCalled()
+
+    expect(wrapper.get('.selector [role="alert"]').text()).toBe('Could not load pipe sets.')
+    expect(wrapper.find('.selector button').exists()).toBe(false)
     wrapper.unmount()
   })
 })

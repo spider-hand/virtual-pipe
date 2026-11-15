@@ -33,6 +33,11 @@ import {
     PipeSetStatusFromJSON,
     PipeSetStatusToJSON,
 } from '../models/PipeSetStatus';
+import {
+    type PipeSetSummary,
+    PipeSetSummaryFromJSON,
+    PipeSetSummaryToJSON,
+} from '../models/PipeSetSummary';
 
 export interface CreatePipeSetRequest {
     /**
@@ -138,6 +143,41 @@ export class PipesetsApi extends runtime.BaseAPI {
      */
     async getPipeSetStatus(requestParameters: GetPipeSetStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PipeSetStatus> {
         const response = await this.getPipeSetStatusRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listPipeSets without sending the request
+     */
+    async listPipeSetsRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/pipesets/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async listPipeSetsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PipeSetSummary>>> {
+        const requestOptions = await this.listPipeSetsRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PipeSetSummaryFromJSON));
+    }
+
+    /**
+     */
+    async listPipeSets(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PipeSetSummary>> {
+        const response = await this.listPipeSetsRaw(initOverrides);
         return await response.value();
     }
 

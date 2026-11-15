@@ -3,7 +3,9 @@ import unicodedata
 from uuid import UUID
 
 import duckdb
+from django.contrib.gis.db.models import Extent
 from django.db import transaction
+from django.db.models import Case, F, When
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from kombu.exceptions import OperationalError
@@ -27,6 +29,7 @@ from pipesets.serializers import (
     PipeSetCreateErrorSerializer,
     PipeSetCreateSerializer,
     PipeSetStatusSerializer,
+    PipeSetSummarySerializer,
 )
 from pipesets.tasks import generate_pipeset
 
@@ -34,6 +37,13 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
+    methods=["GET"],
+    operation_id="listPipeSets",
+    tags=["pipesets"],
+    responses={200: PipeSetSummarySerializer(many=True)},
+)
+@extend_schema(
+    methods=["POST"],
     operation_id="createPipeSet",
     tags=["pipesets"],
     request=PipeSetCreateSerializer,
@@ -44,10 +54,23 @@ logger = logging.getLogger(__name__)
         503: PipeSetCreateErrorSerializer,
     },
 )
-@api_view(["POST"])
+@api_view(["GET", "POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-def create_pipeset(request):
+@never_cache
+def pipesets(request):
+    if request.method == "GET":
+        sets = (
+            PipeSet.objects.filter(status=PipeSet.Status.SUCCEEDED)
+            .annotate(bounds=Extent("pipe__geometry"))
+            .order_by(
+                F("created_at").desc(nulls_last=True),
+                Case(When(created_at__isnull=True, then="name")),
+                "id",
+            )
+        )
+        return Response(PipeSetSummarySerializer(sets, many=True).data)
+
     serializer = PipeSetCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     district_id = serializer.validated_data["district_id"]
@@ -66,10 +89,9 @@ def create_pipeset(request):
     if district is None:
         return Response({"detail": "District not found."}, status=404)
 
-    label, _ = district
     with transaction.atomic(durable=True):
         pipeset = PipeSet.objects.create(
-            name=f"{label} — {attribute_set.name}"[:255],
+            name=serializer.validated_data["name"],
             district_id=district_id,
             attribute_set=attribute_set,
             status=PipeSet.Status.PENDING,

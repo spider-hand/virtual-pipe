@@ -4,9 +4,11 @@ import { useFieldArray, useForm } from 'vee-validate'
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useCreateAttributeSet } from '@/composables/useCreateAttributeSet'
 import type { AttributeDefinition } from '@/services'
+import { getSetNameError } from '@/validation/setName'
 
 const { t } = useI18n({ useScope: 'global' })
 const types = ['string', 'integer', 'decimal', 'boolean', 'date', 'id'] as const
@@ -117,17 +119,18 @@ const { values, errors, defineField, setFieldValue, validate, handleSubmit, rese
       __type: 'VVTypedSchema',
       parse: (draft: Draft) => {
         const errors: { path: string; errors: string[] }[] = []
-        const name = draft.setName.trim()
-
-        if ((submitAttempted.value || draft.setNameTouched) && !name) {
+        const nameError = getSetNameError(
+          draft.setName,
+          submitAttempted.value || draft.setNameTouched,
+        )
+        if (nameError) {
           errors.push({
             path: 'setName',
-            errors: [t('components.AttributeSetEditor.nameRequired')],
-          })
-        } else if ([...name].length > 255) {
-          errors.push({
-            path: 'setName',
-            errors: [t('components.AttributeSetEditor.setNameTooLong')],
+            errors: [
+              nameError === 'required'
+                ? t('components.AttributeSetEditor.nameRequired')
+                : t('components.AttributeSetEditor.setNameTooLong'),
+            ],
           })
         }
 
@@ -229,16 +232,16 @@ const removeRow = async (index: number) => {
   <form ref="editor" class="editor" @submit.prevent="submit">
     <div class="editor-body">
       <fieldset class="editor-fields" :disabled="saving" @input="clearSaved" @change="clearSaved">
-        <label class="field">
-          {{ t('components.AttributeSetEditor.setName') }}
+        <FormField :label="t('components.AttributeSetEditor.setName')">
           <input
+            class="text-input"
             v-model="setName"
             :placeholder="t('components.AttributeSetEditor.setPlaceholder')"
             :aria-invalid="Boolean(errors.setName) || undefined"
             :aria-describedby="errors.setName ? `${id}-set-error` : undefined"
             @blur="setFieldValue('setNameTouched', true, false)"
           />
-        </label>
+        </FormField>
         <p v-if="errors.setName" :id="`${id}-set-error`" class="error">
           {{ errors.setName }}
         </p>
@@ -251,9 +254,9 @@ const removeRow = async (index: number) => {
           :aria-label="t('components.AttributeSetEditor.attribute')"
         >
           <div class="row-fields">
-            <label class="field">
-              {{ t('components.AttributeSetEditor.name') }}
+            <FormField :label="t('components.AttributeSetEditor.name')">
               <input
+                class="text-input"
                 v-model="row.name"
                 :placeholder="t('components.AttributeSetEditor.namePlaceholder')"
                 autocapitalize="none"
@@ -263,16 +266,15 @@ const removeRow = async (index: number) => {
                 :aria-describedby="rowError(index, 'name') ? `${id}-name-error-${key}` : undefined"
                 @blur="row.nameTouched = true"
               />
-            </label>
+            </FormField>
 
-            <label class="field">
-              {{ t('components.AttributeSetEditor.type') }}
+            <FormField :label="t('components.AttributeSetEditor.type')">
               <SelectField
                 v-model="row.type"
                 :options="typeOptions"
                 @change="row.details = emptyDetails()"
               />
-            </label>
+            </FormField>
 
             <button
               class="delete"
@@ -287,9 +289,12 @@ const removeRow = async (index: number) => {
             {{ rowError(index, 'name') }}
           </p>
 
-          <label v-if="row.type === 'string'" class="field">
-            {{ t('components.AttributeSetEditor.choices') }}
+          <FormField
+            v-if="row.type === 'string'"
+            :label="t('components.AttributeSetEditor.choices')"
+          >
             <input
+              class="text-input"
               v-model="row.details.choices"
               :placeholder="t('components.AttributeSetEditor.choicesPlaceholder')"
               :aria-invalid="Boolean(rowError(index, 'details')) || undefined"
@@ -298,11 +303,10 @@ const removeRow = async (index: number) => {
               "
               @blur="row.details.touched = true"
             />
-          </label>
+          </FormField>
 
           <div v-else-if="row.type === 'id'" class="id-details">
-            <label class="field">
-              {{ t('components.AttributeSetEditor.idFormat') }}
+            <FormField :label="t('components.AttributeSetEditor.idFormat')">
               <SelectField
                 v-model="row.details.idFormat"
                 :options="formatOptions"
@@ -310,18 +314,21 @@ const removeRow = async (index: number) => {
                   row.details.idFormat === 'sequential' ? `${id}-sequence-${key}` : undefined
                 "
               />
-            </label>
+            </FormField>
             <p v-if="row.details.idFormat === 'sequential'" :id="`${id}-sequence-${key}`">
               {{ t('components.AttributeSetEditor.sequentialHelp') }}
             </p>
           </div>
 
           <div v-else-if="row.type !== 'boolean'" :key="row.type" class="range">
-            <label v-for="bound in ['min', 'max'] as const" :key="bound" class="field">
-              {{ t(`components.AttributeSetEditor.${bound}`) }}
+            <FormField
+              v-for="bound in ['min', 'max'] as const"
+              :key="bound"
+              :label="t(`components.AttributeSetEditor.${bound}`)"
+            >
               <input
-                :value="row.details[bound]"
-                @input="row.details[bound] = ($event.target as HTMLInputElement).value"
+                class="text-input"
+                v-model="row.details[bound]"
                 :type="row.type === 'date' ? 'date' : 'text'"
                 :inputmode="row.type === 'date' ? undefined : 'decimal'"
                 :aria-invalid="Boolean(rowError(index, 'details')) || undefined"
@@ -330,7 +337,7 @@ const removeRow = async (index: number) => {
                 "
                 @blur="row.details.touched = true"
               />
-            </label>
+            </FormField>
           </div>
 
           <p v-if="rowError(index, 'details')" :id="`${id}-details-error-${key}`" class="error">
@@ -403,13 +410,6 @@ fieldset {
   border: 0;
 }
 
-.field {
-  display: grid;
-  min-width: 0;
-  gap: var(--space-xxs);
-  font-weight: 500;
-}
-
 .row-fields,
 .range {
   display: grid;
@@ -431,7 +431,6 @@ fieldset > .field,
   margin-top: var(--space-xs);
 }
 
-input,
 button {
   box-sizing: border-box;
   min-height: 44px;
@@ -442,24 +441,11 @@ button {
   font: inherit;
 }
 
-input {
-  width: 100%;
-  min-width: 0;
-  padding: var(--space-xs);
-  font: var(--font-body-md);
-}
-
 .id-details p {
   margin: var(--space-xxs) 0 0;
   color: var(--color-muted);
 }
 
-input::placeholder {
-  color: var(--color-muted);
-  opacity: 1;
-}
-
-input:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 1px;
