@@ -27,6 +27,32 @@ class TextField(serializers.CharField):
         return super().to_internal_value(data)
 
 
+class UUIDTextField(serializers.UUIDField):
+    def to_internal_value(self, data):
+        if not isinstance(data, str):
+            self.fail("invalid")
+
+        return super().to_internal_value(data)
+
+
+class PipeSetCreateSerializer(serializers.Serializer):
+    district_id = TextField(
+        trim_whitespace=False,
+        min_length=5,
+        max_length=5,
+        validators=[RegexValidator(r"\A[0-9]{5}\Z")],
+    )
+    attribute_set_id = UUIDTextField()
+
+
+class PipeSetAcceptedSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+
+
+class PipeSetCreateErrorSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
 class AttributeSerializer(serializers.Serializer):
     name = TextField(validators=[RegexValidator(r"\A[a-z][a-z0-9_]*\Z")])
 

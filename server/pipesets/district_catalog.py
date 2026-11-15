@@ -9,7 +9,7 @@ DATA_DIR = Path(
     os.environ.get("DISTRICT_DATA_DIR", Path(__file__).resolve().parents[2] / "data")
 )
 SOURCE = DATA_DIR / "N03-20260101.shp"
-CATALOG = DATA_DIR / "districts-2026.duckdb"
+CATALOG = DATA_DIR / "districts-2026-v2.duckdb"
 
 logger = logging.getLogger(__name__)
 
@@ -39,16 +39,32 @@ def prepare_catalog():
                         AND trim(N03_004) <> ''
                         AND geom IS NOT NULL
                         AND NOT ST_IsEmpty(geom)
+                ), districts AS (
+                    SELECT
+                        code,
+                        first(municipality ORDER BY label) AS municipality,
+                        first(ward ORDER BY label) AS ward,
+                        min(label) AS label,
+                        ST_CollectionExtract(ST_Union_Agg(ST_MakeValid(boundary)), 3)
+                            AS boundary
+                    FROM (
+                        SELECT *, concat_ws(' ', prefecture, county, municipality, ward)
+                            AS label
+                        FROM boundaries
+                    )
+                    GROUP BY code
                 )
                 SELECT
                     code,
                     municipality,
                     ward,
-                    concat_ws(' ', prefecture, county, municipality, ward) AS label,
-                    [min(ST_XMin(boundary)), min(ST_YMin(boundary)),
-                     max(ST_XMax(boundary)), max(ST_YMax(boundary))] AS bounds
-                FROM boundaries
-                GROUP BY code, prefecture, county, municipality, ward
+                    label,
+                    [ST_XMin(boundary), ST_YMin(boundary),
+                     ST_XMax(boundary), ST_YMax(boundary)] AS bounds,
+                    ST_AsWKB(boundary) AS boundary_wkb
+                FROM districts
+                WHERE ST_GeometryType(boundary) IN ('POLYGON', 'MULTIPOLYGON')
+                    AND NOT ST_IsEmpty(boundary)
                 """,
                 [str(SOURCE)],
             )
@@ -56,6 +72,13 @@ def prepare_catalog():
                 raise ValueError("The shapefile contains no searchable districts")
 
         catalog.replace(CATALOG)
+
+
+def get_district(code):
+    with duckdb.connect(str(CATALOG), read_only=True) as connection:
+        return connection.execute(
+            "SELECT label, boundary_wkb FROM districts WHERE code = ?", [code]
+        ).fetchone()
 
 
 def search_districts(query):

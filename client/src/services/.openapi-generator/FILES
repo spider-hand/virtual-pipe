@@ -1,6 +1,7 @@
 apis/AttributeSetsApi.ts
 apis/DistrictsApi.ts
 apis/HealthApi.ts
+apis/PipesetsApi.ts
 apis/index.ts
 index.ts
 models/AttributeDefinition.ts
@@ -20,6 +21,9 @@ models/HealthResponse.ts
 models/IdFormatEnum.ts
 models/IntegerAttribute.ts
 models/IntegerAttributeTypeEnum.ts
+models/PipeSetAccepted.ts
+models/PipeSetCreate.ts
+models/PipeSetCreateError.ts
 models/StatusEnum.ts
 models/StringAttribute.ts
 models/StringAttributeTypeEnum.ts

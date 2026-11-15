@@ -5,6 +5,13 @@ x-postgres-environment: &postgres-environment
   POSTGRES_USER: ${POSTGRES_USER:-virtual_pipe}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-virtual_pipe}
 
+x-server-environment: &server-environment
+  <<: *postgres-environment
+  CELERY_BROKER_URL: redis://redis:6379/0
+  DISTRICT_DATA_DIR: /data
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+
 services:
   client:
     build: ./client
@@ -29,11 +36,7 @@ services:
     command: sh -c "uv run --locked python manage.py migrate && uv run --locked python -m pipesets.district_catalog && uv run --locked python manage.py runserver 0.0.0.0:8000"
     ports:
       - "127.0.0.1:8000:8000"
-    environment:
-      <<: *postgres-environment
-      DISTRICT_DATA_DIR: /data
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
+    environment: *server-environment
     depends_on:
       db:
         condition: service_healthy
@@ -43,6 +46,31 @@ services:
       - ./data:/data
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health/', timeout=2).close()"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build: ./server
+    command: uv run --locked celery -A config worker --loglevel=INFO --concurrency=1
+    environment: *server-environment
+    depends_on:
+      server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - server_venv:/app/.venv
+      - ./data:/data:ro
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -93,4 +121,5 @@ volumes:
   client_pnpm_store:
   server_venv:
   postgres_data:
+  redis_data:
   osm_downloads:

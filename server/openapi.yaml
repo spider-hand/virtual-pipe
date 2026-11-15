@@ -88,6 +88,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
           description: ''
+  /api/pipesets/:
+    post:
+      operationId: createPipeSet
+      tags:
+      - pipesets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipeSetCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PipeSetCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PipeSetCreate'
+        required: true
+      security:
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipeSetAccepted'
+          description: ''
+        '400':
+          description: Invalid pipe set request.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipeSetCreateError'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipeSetCreateError'
+          description: ''
 components:
   schemas:
     AttributeDefinition:
@@ -287,6 +327,35 @@ components:
       - integer
       type: string
       description: '* `integer` - integer'
+    PipeSetAccepted:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      required:
+      - id
+    PipeSetCreate:
+      type: object
+      properties:
+        district_id:
+          type: string
+          pattern: ^[0-9]{5}$
+          maxLength: 5
+          minLength: 5
+        attribute_set_id:
+          type: string
+          format: uuid
+      required:
+      - attribute_set_id
+      - district_id
+    PipeSetCreateError:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     StatusEnum:
       enum:
       - ok

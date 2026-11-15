@@ -2,7 +2,9 @@ import logging
 import unicodedata
 
 import duckdb
+from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from kombu.exceptions import OperationalError
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -12,16 +14,75 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from pipesets.district_catalog import search_districts
-from pipesets.models import AttributeSet
+from pipesets.district_catalog import get_district, search_districts
+from pipesets.models import AttributeSet, PipeSet
 from pipesets.serializers import (
     AttributeSetCreateSerializer,
     AttributeSetSerializer,
     DistrictSearchErrorSerializer,
     DistrictSerializer,
+    PipeSetAcceptedSerializer,
+    PipeSetCreateErrorSerializer,
+    PipeSetCreateSerializer,
 )
+from pipesets.tasks import generate_pipeset
 
 logger = logging.getLogger(__name__)
+
+
+@extend_schema(
+    operation_id="createPipeSet",
+    tags=["pipesets"],
+    request=PipeSetCreateSerializer,
+    responses={
+        202: PipeSetAcceptedSerializer,
+        400: OpenApiResponse(description="Invalid pipe set request."),
+        404: PipeSetCreateErrorSerializer,
+        503: PipeSetCreateErrorSerializer,
+    },
+)
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def create_pipeset(request):
+    serializer = PipeSetCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    district_id = serializer.validated_data["district_id"]
+    attribute_set_id = serializer.validated_data["attribute_set_id"]
+
+    attribute_set = AttributeSet.objects.filter(pk=attribute_set_id).first()
+    if attribute_set is None:
+        return Response({"detail": "Attribute set not found."}, status=404)
+
+    try:
+        district = get_district(district_id)
+    except OSError, duckdb.Error:
+        logger.exception("Could not query the district catalog")
+        return Response({"detail": "The district catalog is unavailable."}, status=503)
+
+    if district is None:
+        return Response({"detail": "District not found."}, status=404)
+
+    label, _ = district
+    with transaction.atomic(durable=True):
+        pipeset = PipeSet.objects.create(
+            name=f"{label} — {attribute_set.name}"[:255],
+            district_id=district_id,
+            attribute_set=attribute_set,
+            status=PipeSet.Status.PENDING,
+        )
+
+    try:
+        generate_pipeset.apply_async(args=[str(pipeset.id)], retry=False)
+    except OperationalError:
+        logger.exception("Could not queue generation for %s", pipeset.id)
+        reason = "The generation queue is unavailable."
+        PipeSet.objects.filter(pk=pipeset.id, status=PipeSet.Status.PENDING).update(
+            status=PipeSet.Status.FAILED, failure_reason=reason
+        )
+        return Response({"detail": reason}, status=503)
+
+    return Response(PipeSetAcceptedSerializer(pipeset).data, status=202)
 
 
 @extend_schema(

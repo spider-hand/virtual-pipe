@@ -55,7 +55,7 @@ If an API or model was removed or renamed, clear `client/src/services/` before r
 
 ## District search setup
 
-Copy `N03-20260101.shp`, `N03-20260101.shx`, `N03-20260101.dbf`, `N03-20260101.prj`, and `N03-20260101.cpg` from the nationwide [MLIT download](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html) into the root `data/` directory. Run `make up`. The server prepares the local search catalog on first startup.
+Copy `N03-20260101.shp`, `N03-20260101.shx`, `N03-20260101.dbf`, `N03-20260101.prj`, and `N03-20260101.cpg` from the nationwide [MLIT download](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html) into the root `data/` directory. Run `make up`. The server builds the local catalog for district search and pipe generation. Compose starts Redis and the generation worker as part of the same stack.
 
 ## Credits
 
