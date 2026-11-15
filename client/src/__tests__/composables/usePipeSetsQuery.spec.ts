@@ -1,8 +1,10 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { VueQueryPlugin } from '@tanstack/vue-query'
+import { createApp, effectScope } from 'vue'
 
-import { usePipeSetGenerationQuery } from '@/composables/usePipeSetGenerationQuery'
+import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
+import { createQueryClient } from '@/queryClient'
 
 const id = '7fc19571-3276-49e3-9ef0-4ccb7cd1d599'
 const selection = {
@@ -11,11 +13,11 @@ const selection = {
   attributeSetId: '4984ce93-5b72-473c-ae9e-950b46d4f9c8',
 }
 
-describe('usePipeSetGenerationQuery', () => {
+describe('usePipeSetsQuery', () => {
   const onSucceeded = vi.fn<(id: string) => void>()
   let scope: ReturnType<typeof effectScope>
   let fetch: ReturnType<typeof vi.fn<typeof globalThis.fetch>>
-  let query: ReturnType<typeof usePipeSetGenerationQuery>
+  let query: ReturnType<typeof usePipeSetsQuery>
 
   beforeEach(() => {
     vi.useFakeTimers()
@@ -25,7 +27,8 @@ describe('usePipeSetGenerationQuery', () => {
       .mockResolvedValueOnce(Response.json({ id }, { status: 202 }))
     vi.stubGlobal('fetch', fetch)
     scope = effectScope()
-    query = scope.run(() => usePipeSetGenerationQuery({ onSucceeded }))!
+    const app = createApp({}).use(VueQueryPlugin, { queryClient: createQueryClient() })
+    query = app.runWithContext(() => scope.run(() => usePipeSetsQuery({ onSucceeded }))!)
   })
 
   afterEach(() => {
@@ -56,7 +59,7 @@ describe('usePipeSetGenerationQuery', () => {
     await vi.advanceTimersByTimeAsync(1)
     expect(fetch).toHaveBeenLastCalledWith(
       `/api/pipesets/${id}/`,
-      expect.objectContaining({ method: 'GET' }),
+      expect.objectContaining({ method: 'GET', cache: 'no-store' }),
     )
     await vi.advanceTimersByTimeAsync(20_000)
     expect(fetch).toHaveBeenCalledTimes(2)

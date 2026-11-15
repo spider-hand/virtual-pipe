@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 
 import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
-import { useCreateAttributeSet } from '@/composables/useCreateAttributeSet'
+import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import type { AttributeDefinition } from '@/services'
 import { getSetNameError } from '@/validation/setName'
 
@@ -24,9 +24,14 @@ const formatOptions = computed(() =>
 )
 const id = useId()
 const editor = useTemplateRef<HTMLFormElement>('editor')
-const { create, saved, failed, clearSaved } = useCreateAttributeSet()
+const {
+  create,
+  saved,
+  saving: creating,
+  createFailed: failed,
+  clearSaved,
+} = useAttributeSetsQuery()
 const submitAttempted = ref(false)
-const saving = ref(false)
 
 const emptyDetails = () => ({
   choices: '',
@@ -112,47 +117,55 @@ const detailsRule = (row: Row) => {
   )
 }
 
-const { values, errors, defineField, setFieldValue, validate, handleSubmit, resetForm } =
-  useForm<Draft>({
-    initialValues: { setName: '', setNameTouched: false, rows: [createRow()] },
-    validationSchema: {
-      __type: 'VVTypedSchema',
-      parse: (draft: Draft) => {
-        const errors: { path: string; errors: string[] }[] = []
-        const nameError = getSetNameError(
-          draft.setName,
-          submitAttempted.value || draft.setNameTouched,
-        )
-        if (nameError) {
-          errors.push({
-            path: 'setName',
-            errors: [
-              nameError === 'required'
-                ? t('components.AttributeSetEditor.nameRequired')
-                : t('components.AttributeSetEditor.setNameTooLong'),
-            ],
-          })
-        }
-
-        if (submitAttempted.value && !draft.rows.length) {
-          errors.push({
-            path: 'rows',
-            errors: [t('components.AttributeSetEditor.attributesRequired')],
-          })
-        }
-
-        draft.rows.forEach((row, index) => {
-          const name = nameRule(draft.rows, row, index)
-          const details = detailsRule(row)
-
-          if (name !== true) errors.push({ path: `rows[${index}].name`, errors: [name] })
-          if (details !== true) errors.push({ path: `rows[${index}].details`, errors: [details] })
+const {
+  values,
+  errors,
+  defineField,
+  setFieldValue,
+  validate,
+  handleSubmit,
+  resetForm,
+  isSubmitting,
+} = useForm<Draft>({
+  initialValues: { setName: '', setNameTouched: false, rows: [createRow()] },
+  validationSchema: {
+    __type: 'VVTypedSchema',
+    parse: (draft: Draft) => {
+      const errors: { path: string; errors: string[] }[] = []
+      const nameError = getSetNameError(
+        draft.setName,
+        submitAttempted.value || draft.setNameTouched,
+      )
+      if (nameError) {
+        errors.push({
+          path: 'setName',
+          errors: [
+            nameError === 'required'
+              ? t('components.AttributeSetEditor.nameRequired')
+              : t('components.AttributeSetEditor.setNameTooLong'),
+          ],
         })
+      }
 
-        return errors.length ? { errors } : { errors, value: draft }
-      },
+      if (submitAttempted.value && !draft.rows.length) {
+        errors.push({
+          path: 'rows',
+          errors: [t('components.AttributeSetEditor.attributesRequired')],
+        })
+      }
+
+      draft.rows.forEach((row, index) => {
+        const name = nameRule(draft.rows, row, index)
+        const details = detailsRule(row)
+
+        if (name !== true) errors.push({ path: `rows[${index}].name`, errors: [name] })
+        if (details !== true) errors.push({ path: `rows[${index}].details`, errors: [details] })
+      })
+
+      return errors.length ? { errors } : { errors, value: draft }
     },
-  })
+  },
+})
 const { fields, push, remove } = useFieldArray<Row>('rows')
 const rowError = (index: number, field: 'name' | 'details') =>
   errors.value[`rows[${index}].${field}`]
@@ -183,17 +196,13 @@ const persist = handleSubmit(async (draft) => {
   await create({ name: draft.setName.trim(), attributes })
 })
 
+const saving = computed(() => isSubmitting.value || creating.value)
+
 const submit = async () => {
   if (saving.value || saved.value) return
 
   submitAttempted.value = true
-  saving.value = true
-
-  try {
-    await persist()
-  } finally {
-    saving.value = false
-  }
+  await persist()
 }
 
 const startNew = async () => {

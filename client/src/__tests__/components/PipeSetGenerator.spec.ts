@@ -2,9 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import PipeSetGenerator from '@/components/PipeSetGenerator.vue'
-import { createAppI18n } from '@/i18n'
-
-const global = { plugins: [createAppI18n('en')] }
+import { createTestPlugins } from '@/__tests__/testSetup'
 
 const set = {
   id: 'a4c52712-4dd2-4510-91d7-69786a55d114',
@@ -24,7 +22,10 @@ afterEach(() => {
 
 describe('PipeSetGenerator', () => {
   it('should render the default state', () => {
-    const wrapper = mount(PipeSetGenerator, { global, props: { active: false } })
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: false },
+    })
 
     expect(wrapper.get('input[required]').element.value).toBe('')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
@@ -38,7 +39,10 @@ describe('PipeSetGenerator', () => {
   it.each(['', '   '])(
     'should show a required error on leaving the name field with %j',
     async (value) => {
-      const wrapper = mount(PipeSetGenerator, { global, props: { active: false } })
+      const wrapper = mount(PipeSetGenerator, {
+        global: { plugins: createTestPlugins() },
+        props: { active: false },
+      })
       const name = wrapper.get('input[required]')
 
       await name.setValue(value)
@@ -61,7 +65,10 @@ describe('PipeSetGenerator', () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
-    const wrapper = mount(PipeSetGenerator, { global, props: { active: true } })
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: true },
+    })
 
     expect(wrapper.get('[role="status"]').text()).toBe('Loading attribute sets…')
     await flushPromises()
@@ -75,7 +82,10 @@ describe('PipeSetGenerator', () => {
 
   it('should guide users to create an attribute set when the list is empty', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([])))
-    const wrapper = mount(PipeSetGenerator, { global, props: { active: true } })
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: true },
+    })
     await flushPromises()
 
     expect(wrapper.get('[role="status"]').text()).toContain('Create an attribute set')
@@ -91,7 +101,10 @@ describe('PipeSetGenerator', () => {
       .mockResolvedValueOnce(Response.json([set]))
       .mockResolvedValueOnce(Response.json([nextSet, set]))
     vi.stubGlobal('fetch', fetch)
-    const wrapper = mount(PipeSetGenerator, { global, props: { active: true } })
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: true },
+    })
     await flushPromises()
 
     const select = wrapper.get('select')
@@ -128,7 +141,10 @@ describe('PipeSetGenerator', () => {
       .mockResolvedValueOnce(Response.json([district]))
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
-    const wrapper = mount(PipeSetGenerator, { global, props: { active: true } })
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: true },
+    })
     await flushPromises()
     const select = wrapper.get('select')
     const name = wrapper.get('input[required]')

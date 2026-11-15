@@ -2,9 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import AttributeSetEditor from '@/components/AttributeSetEditor.vue'
-import { createAppI18n } from '@/i18n'
-
-const global = { plugins: [createAppI18n('en')] }
+import { createTestPlugins } from '@/__tests__/testSetup'
 
 describe('AttributeSetEditor', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -12,7 +10,7 @@ describe('AttributeSetEditor', () => {
   it('should validate untouched fields before requesting a save', async () => {
     const request = vi.fn<typeof fetch>()
     vi.stubGlobal('fetch', request)
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('form').trigger('submit')
 
     await vi.waitFor(() => {
@@ -26,7 +24,7 @@ describe('AttributeSetEditor', () => {
     let respond!: (response: Response) => void
     const request = vi.fn<typeof fetch>(() => new Promise((resolve) => (respond = resolve)))
     vi.stubGlobal('fetch', request)
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('input').setValue(' Mains ')
     const name = wrapper.get('fieldset fieldset input')
     await name.setValue(' pressure ')
@@ -79,7 +77,7 @@ describe('AttributeSetEditor', () => {
         Response.json({ id: 'saved-id', ...JSON.parse(String(options?.body)) }, { status: 201 }),
       )
     vi.stubGlobal('fetch', request)
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const name = wrapper.get('input')
     await name.setValue('Mains')
     await wrapper.get('fieldset fieldset input').setValue('active')
@@ -110,7 +108,7 @@ describe('AttributeSetEditor', () => {
       'fetch',
       vi.fn<typeof fetch>().mockResolvedValue(Response.json({}, { status: 400 })),
     )
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('input').setValue('Mains')
     await wrapper.get('fieldset fieldset input').setValue('active')
     await wrapper.get('select').setValue('boolean')
@@ -124,7 +122,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should render the default state', () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
 
     expect(wrapper.get('input').element.value).toBe('')
     expect(wrapper.get('select').element.value).toBe('string')
@@ -140,7 +138,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should add and delete attributes while keeping other edits', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('fieldset fieldset input').setValue('material')
     await wrapper.get('button.add').trigger('click')
     await wrapper.findAll('fieldset fieldset')[1]!.get('input').setValue('diameter_mm')
@@ -154,14 +152,14 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should flag a blank field name on blur', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const name = wrapper.get('fieldset fieldset input')
     await name.trigger('blur')
     await vi.waitFor(() => expect(name.attributes('aria-invalid')).toBe('true'))
   })
 
   it('should flag both duplicate field names after trimming', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const name = wrapper.get('fieldset fieldset input')
     await name.setValue('material')
     await wrapper.get('button.add').trigger('click')
@@ -178,7 +176,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should clear a duplicate error when the other field is deleted', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('fieldset fieldset input').setValue('material')
     await wrapper.get('button.add').trigger('click')
     const remaining = wrapper.findAll('fieldset fieldset')[1]!.get('input')
@@ -194,7 +192,7 @@ describe('AttributeSetEditor', () => {
   it.each(['管径', 'Diameter', 'pipe diameter', 'pipe-diameter', '2inch'])(
     'should show a field-name error for %s until corrected',
     async (value) => {
-      const wrapper = mount(AttributeSetEditor, { global })
+      const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
       const name = wrapper.get('fieldset fieldset input')
       await name.setValue(value)
       expect(name.element.value).toBe(value)
@@ -206,7 +204,7 @@ describe('AttributeSetEditor', () => {
   )
 
   it('should accept Japanese text in the set name and string choices', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const setName = wrapper.get('input')
     const choices = wrapper.get('fieldset fieldset > label input')
     await setName.setValue('配水管')
@@ -219,7 +217,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should default to Sequential and reset the ID format after changing type', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const type = wrapper.get('select')
     await type.setValue('id')
     const format = () => wrapper.findAll('select')[1]!
@@ -238,7 +236,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should accept trailing commas and clear choices when the type changes', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const getChoices = () => wrapper.get('fieldset fieldset > label input')
     await getChoices().setValue(' AC, PVC,')
     await getChoices().trigger('blur')
@@ -251,7 +249,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should require at least one string choice', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     const choices = wrapper.get('fieldset fieldset > label input')
     await choices.setValue(', ,')
     await choices.trigger('blur')
@@ -264,7 +262,7 @@ describe('AttributeSetEditor', () => {
     ['decimal', '1.00000000000000000002', '1.00000000000000000001'],
     ['date', '2025-02-02', '2025-02-01'],
   ])('should reject reversed %s bounds', async (type, high, low) => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('select').setValue(type)
     const [min, max] = wrapper.findAll(`input[type="${type === 'date' ? 'date' : 'text'}"]`)
     await min!.setValue(high)
@@ -279,7 +277,7 @@ describe('AttributeSetEditor', () => {
     ['decimal', '2.00'],
     ['date', '2025-02-02'],
   ])('should accept equal %s bounds for a fixed value', async (type, value) => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('select').setValue(type)
     const [min, max] = wrapper.findAll(`input[type="${type === 'date' ? 'date' : 'text'}"]`)
     await min!.setValue(value)
@@ -293,7 +291,7 @@ describe('AttributeSetEditor', () => {
     ['integer', '1.00', '10', 'Enter whole numbers for both bounds.'],
     ['decimal', '1', '10.00', 'Enter at least one decimal place in both bounds.'],
   ])('should reject invalid %s bounds', async (type, lower, upper, message) => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('select').setValue(type)
     const [min, max] = wrapper.findAll('input[type="text"]')
     await min!.setValue(lower)
@@ -303,7 +301,7 @@ describe('AttributeSetEditor', () => {
   })
 
   it('should preserve typed decimal bounds and clear the precision error after correction', async () => {
-    const wrapper = mount(AttributeSetEditor, { global })
+    const wrapper = mount(AttributeSetEditor, { global: { plugins: createTestPlugins() } })
     await wrapper.get('select').setValue('decimal')
     const [min, max] = wrapper.findAll('input[type="text"]')
     await min!.setValue('1.00')

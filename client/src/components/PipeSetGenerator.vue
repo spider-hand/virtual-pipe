@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, useId, watch } from 'vue'
+import { computed, ref, shallowRef, toRef, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import DistrictSearch from '@/components/DistrictSearch.vue'
 import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
-import { usePipeSetGenerationQuery } from '@/composables/usePipeSetGenerationQuery'
+import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import type { AttributeDefinition, District } from '@/services'
 import { getSetNameError } from '@/validation/setName'
 
@@ -17,8 +17,8 @@ const emit = defineEmits<{
   pipesetReady: [id: string]
 }>()
 const id = useId()
-const { sets, loading, failed, load } = useAttributeSetsQuery()
-const { status, busy, submit } = usePipeSetGenerationQuery({
+const { sets, loading, failed } = useAttributeSetsQuery(toRef(() => props.active))
+const { status, busy, submit } = usePipeSetsQuery({
   onSucceeded: (id) => emit('pipesetReady', id),
 })
 const selectedId = ref('')
@@ -43,14 +43,6 @@ const selection = computed(() => {
 
   return { attributeSetId: selectedSet.value.id, districtId: district.value.code }
 })
-
-watch(
-  () => props.active,
-  (active) => {
-    if (active) void load()
-  },
-  { immediate: true },
-)
 
 watch(sets, () => {
   if (!selectedSet.value) selectedId.value = ''

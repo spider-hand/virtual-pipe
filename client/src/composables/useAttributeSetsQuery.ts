@@ -1,28 +1,49 @@
-import { ref, shallowRef } from 'vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { computed, type Ref } from 'vue'
 
-import { AttributeSetsApi, Configuration, type AttributeSet } from '@/services'
+import { AttributeSetsApi, Configuration, type AttributeSetCreate } from '@/services'
 
 const api = new AttributeSetsApi(new Configuration({ basePath: '' }))
+const attributeSetsKey = ['attributeSets'] as const
 
-export const useAttributeSetsQuery = () => {
-  const sets = shallowRef<AttributeSet[]>([])
-  const loading = ref(false)
-  const failed = ref(false)
+export const useAttributeSetsQuery = (active: Readonly<Ref<boolean>> | boolean = false) => {
+  const client = useQueryClient()
+  const { data, isFetching, isError } = useQuery({
+    queryKey: attributeSetsKey,
+    queryFn: ({ signal }) => api.listAttributeSets({ signal }),
+    enabled: active,
+  })
 
-  const load = async () => {
-    if (loading.value) return
+  const {
+    data: savedSet,
+    isError: createFailed,
+    isPending,
+    mutateAsync,
+    reset,
+  } = useMutation({
+    mutationFn: (attributeSetCreate: AttributeSetCreate) =>
+      api.createAttributeSet({ attributeSetCreate }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: attributeSetsKey })
+    },
+  })
 
-    loading.value = true
-    failed.value = false
-
-    try {
-      sets.value = await api.listAttributeSets()
-    } catch {
-      failed.value = true
-    } finally {
-      loading.value = false
-    }
+  const create = async (attributeSetCreate: AttributeSetCreate) => {
+    await mutateAsync(attributeSetCreate).catch(() => undefined)
   }
 
-  return { sets, loading, failed, load }
+  const clearSaved = () => {
+    if (savedSet.value) reset()
+  }
+
+  return {
+    sets: computed(() => data.value ?? []),
+    loading: isFetching,
+    failed: isError,
+    create,
+    saved: computed(() => savedSet.value ?? null),
+    saving: isPending,
+    createFailed,
+    clearSaved,
+  }
 }

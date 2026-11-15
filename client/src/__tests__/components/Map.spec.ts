@@ -4,9 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import Map from '@/components/Map.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
-import { createAppI18n } from '@/i18n'
+import { createTestPlugins } from '@/__tests__/testSetup'
 
-const global = { plugins: [createAppI18n('en')] }
 const newest = { id: 'newest', name: 'Newest', bounds: [139.5, 35.4, 139.7, 35.5] }
 const oldest = { id: 'oldest', name: 'Oldest', bounds: [130.5, 34.4, 130.7, 34.5] }
 const legacy = { id: 'legacy', name: 'Legacy', bounds: null }
@@ -60,7 +59,7 @@ describe('Map', () => {
       )
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map, { global })
+    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
     const panel = wrapper.get('[role="tabpanel"]:has([role="combobox"])')
     expect(panel.isVisible()).toBe(false)
     await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
@@ -97,7 +96,7 @@ describe('Map', () => {
       'fetch',
       vi.fn<typeof fetch>().mockResolvedValue(Response.json([newest, oldest, legacy])),
     )
-    const wrapper = mount(Map, { global })
+    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
     await flushPromises()
     const picker = wrapper.get('.selector select')
 
@@ -139,7 +138,7 @@ describe('Map', () => {
       .mockResolvedValueOnce(Response.json([newest, { ...oldest, id }]))
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map, { global })
+    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
     const style = createMap.mock.calls[0]![0].style
     expect(style).toMatchObject({ sources: { basemap: { type: 'raster' } } })
     expect(style && typeof style === 'object' && style.sources).not.toHaveProperty('pipes')
@@ -172,6 +171,10 @@ describe('Map', () => {
     expect(addSource).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(10_000)
     expect(picker.element.value).toBe(id)
+    expect(fetch).toHaveBeenLastCalledWith(
+      '/api/pipesets/',
+      expect.objectContaining({ method: 'GET', cache: 'no-store' }),
+    )
     expect(fitBounds).toHaveBeenLastCalledWith(oldest.bounds, { padding: 48 })
     expect(addSource).toHaveBeenCalledExactlyOnceWith(
       'pipes',
@@ -198,7 +201,7 @@ describe('Map', () => {
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map, { global })
+    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
     await flushPromises()
     onLoad.mock.calls[0]![1]()
     const picker = wrapper.get('.selector select')

@@ -1,22 +1,26 @@
-import { onScopeDispose, ref, shallowRef } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, onScopeDispose, ref } from 'vue'
 
-import { Configuration, DistrictsApi, type District } from '@/services'
+import { Configuration, DistrictsApi } from '@/services'
 
 const api = new DistrictsApi(new Configuration({ basePath: '' }))
+const districtsKey = ['districts'] as const
 
 export const useDistrictsQuery = () => {
-  const results = shallowRef<District[]>([])
-  const loading = ref(false)
-  const unavailable = ref(false)
+  const term = ref('')
+  const debouncing = ref(false)
   let timer: ReturnType<typeof setTimeout> | undefined
-  let request: AbortController | undefined
+
+  const { data, isFetching, isError } = useQuery({
+    queryKey: computed(() => [...districtsKey, term.value] as const),
+    queryFn: ({ queryKey: [, q], signal }) => api.searchDistricts({ q }, { signal }),
+    enabled: computed(() => Boolean(term.value)),
+  })
 
   const clear = () => {
     clearTimeout(timer)
-    request?.abort()
-    results.value = []
-    loading.value = false
-    unavailable.value = false
+    term.value = ''
+    debouncing.value = false
   }
 
   const search = (text: string) => {
@@ -25,23 +29,20 @@ export const useDistrictsQuery = () => {
     const q = text.trim()
     if (!q) return
 
-    loading.value = true
-    const pending = new AbortController()
-    request = pending
-
-    timer = setTimeout(async () => {
-      try {
-        const districts = await api.searchDistricts({ q }, { signal: pending.signal })
-        if (!pending.signal.aborted) results.value = districts
-      } catch {
-        if (!pending.signal.aborted) unavailable.value = true
-      } finally {
-        if (!pending.signal.aborted) loading.value = false
-      }
+    debouncing.value = true
+    timer = setTimeout(() => {
+      term.value = q
+      debouncing.value = false
     }, 200)
   }
 
   onScopeDispose(clear)
 
-  return { results, loading, unavailable, search, clear }
+  return {
+    results: computed(() => (term.value ? (data.value ?? []) : [])),
+    loading: computed(() => debouncing.value || (Boolean(term.value) && isFetching.value)),
+    unavailable: computed(() => Boolean(term.value) && !isFetching.value && isError.value),
+    search,
+    clear,
+  }
 }

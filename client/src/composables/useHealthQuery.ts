@@ -1,24 +1,23 @@
-import { shallowRef } from 'vue'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { computed } from 'vue'
 
-import { Configuration, HealthApi, type HealthResponse } from '@/services'
+import { Configuration, HealthApi } from '@/services'
 
-// Use the current origin so Vite can proxy /api requests to Django.
-const healthApi = new HealthApi(new Configuration({ basePath: '' }))
+const api = new HealthApi(new Configuration({ basePath: '' }))
+const healthKey = ['health'] as const
 
 export const useHealthQuery = () => {
-  const data = shallowRef<HealthResponse>()
-  const error = shallowRef<unknown>()
+  const client = useQueryClient()
+  const { data, error, refetch } = useQuery({
+    queryKey: healthKey,
+    queryFn: ({ signal }) => api.getHealth({ signal }),
+    enabled: false,
+  })
 
   const checkHealth = async () => {
-    data.value = undefined
-    error.value = undefined
-
-    try {
-      data.value = await healthApi.getHealth()
-    } catch (cause) {
-      error.value = cause
-    }
+    await client.resetQueries({ queryKey: healthKey })
+    await refetch()
   }
 
-  return { data, error, checkHealth }
+  return { data, error: computed(() => error.value ?? undefined), checkHealth }
 }

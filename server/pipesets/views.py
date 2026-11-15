@@ -6,7 +6,6 @@ import duckdb
 from django.contrib.gis.db.models import Extent
 from django.db import transaction
 from django.db.models import Case, F, When
-from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from kombu.exceptions import OperationalError
 from rest_framework import status
@@ -57,7 +56,6 @@ logger = logging.getLogger(__name__)
 @api_view(["GET", "POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-@never_cache
 def pipesets(request):
     if request.method == "GET":
         sets = (
@@ -129,7 +127,6 @@ def pipesets(request):
 @api_view(["GET"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-@never_cache
 def get_pipeset_status(request, id):
     pipeset = (
         PipeSet.objects.filter(pk=id).values("id", "status", "failure_reason").first()
