@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import { Plus, Trash2 } from '@lucide/vue'
 import { useFieldArray, useForm } from 'vee-validate'
-import { nextTick, ref, useId, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import SelectField from '@/components/SelectField.vue'
 import { useCreateAttributeSet } from '@/composables/useCreateAttributeSet'
-import en from '@/locales/en.json'
-import ja from '@/locales/ja.json'
 import type { AttributeDefinition } from '@/services'
 
-const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
-const messages = locale.components.AttributeSetEditor
+const { t } = useI18n({ useScope: 'global' })
 const types = ['string', 'integer', 'decimal', 'boolean', 'date', 'id'] as const
 const idFormats = ['sequential', 'uuid'] as const
-const typeOptions = types.map((value) => ({ value, label: messages.types[value] }))
-const formatOptions = idFormats.map((value) => ({ value, label: messages.idFormats[value] }))
+const typeOptions = computed(() =>
+  types.map((value) => ({ value, label: t(`components.AttributeSetEditor.types.${value}`) })),
+)
+const formatOptions = computed(() =>
+  idFormats.map((value) => ({
+    value,
+    label: t(`components.AttributeSetEditor.idFormats.${value}`),
+  })),
+)
 const id = useId()
 const editor = useTemplateRef<HTMLFormElement>('editor')
 const { create, saved, failed, clearSaved } = useCreateAttributeSet()
@@ -41,11 +46,14 @@ type Draft = { setName: string; setNameTouched: boolean; rows: Row[] }
 
 const nameRule = (rows: Row[], row: Row, index: number) => {
   const name = row.name.trim()
-  if (!name) return submitAttempted.value || row.nameTouched ? messages.nameRequired : true
+  if (!name)
+    return submitAttempted.value || row.nameTouched
+      ? t('components.AttributeSetEditor.nameRequired')
+      : true
   if (rows.some((other, otherIndex) => otherIndex !== index && other.name.trim() === name)) {
-    return messages.duplicateName
+    return t('components.AttributeSetEditor.duplicateName')
   }
-  return /^[a-z][a-z0-9_]*$/.test(name) || messages.invalidName
+  return /^[a-z][a-z0-9_]*$/.test(name) || t('components.AttributeSetEditor.invalidName')
 }
 
 const parseChoices = (text: string) =>
@@ -60,17 +68,23 @@ const detailsRule = (row: Row) => {
   if (row.type === 'boolean' || row.type === 'id') return true
 
   if (row.type === 'string') {
-    return !touched || parseChoices(choices).length > 0 || messages.choicesRequired
+    return (
+      !touched ||
+      parseChoices(choices).length > 0 ||
+      t('components.AttributeSetEditor.choicesRequired')
+    )
   }
 
-  if (!min.trim() || !max.trim()) return !touched || messages.boundsRequired
+  if (!min.trim() || !max.trim())
+    return !touched || t('components.AttributeSetEditor.boundsRequired')
   if (row.type === 'date' && !touched) return true
 
   if (row.type === 'date') {
     const lower = Date.parse(min)
     const upper = Date.parse(max)
-    if (!Number.isFinite(lower) || !Number.isFinite(upper)) return messages.boundsRequired
-    return lower <= upper || messages.reversedRange
+    if (!Number.isFinite(lower) || !Number.isFinite(upper))
+      return t('components.AttributeSetEditor.boundsRequired')
+    return lower <= upper || t('components.AttributeSetEditor.reversedRange')
   }
 
   const lower = min.trim()
@@ -78,17 +92,22 @@ const detailsRule = (row: Row) => {
 
   if (row.type === 'integer') {
     const integer = /^-?[0-9]+$/
-    if (!integer.test(lower) || !integer.test(upper)) return messages.integerBounds
+    if (!integer.test(lower) || !integer.test(upper))
+      return t('components.AttributeSetEditor.integerBounds')
   } else {
     const decimal = /^-?[0-9]+[.]([0-9]+)$/
     const lowerFraction = lower.match(decimal)?.[1]
     const upperFraction = upper.match(decimal)?.[1]
-    if (!lowerFraction || !upperFraction) return messages.decimalBounds
-    if (lowerFraction.length !== upperFraction.length) return messages.decimalPrecision
+    if (!lowerFraction || !upperFraction) return t('components.AttributeSetEditor.decimalBounds')
+    if (lowerFraction.length !== upperFraction.length)
+      return t('components.AttributeSetEditor.decimalPrecision')
   }
 
   // Compare the bounds exactly at their shared precision.
-  return BigInt(lower.replace('.', '')) <= BigInt(upper.replace('.', '')) || messages.reversedRange
+  return (
+    BigInt(lower.replace('.', '')) <= BigInt(upper.replace('.', '')) ||
+    t('components.AttributeSetEditor.reversedRange')
+  )
 }
 
 const { values, errors, defineField, setFieldValue, validate, handleSubmit, resetForm } =
@@ -101,13 +120,22 @@ const { values, errors, defineField, setFieldValue, validate, handleSubmit, rese
         const name = draft.setName.trim()
 
         if ((submitAttempted.value || draft.setNameTouched) && !name) {
-          errors.push({ path: 'setName', errors: [messages.nameRequired] })
+          errors.push({
+            path: 'setName',
+            errors: [t('components.AttributeSetEditor.nameRequired')],
+          })
         } else if ([...name].length > 255) {
-          errors.push({ path: 'setName', errors: [messages.setNameTooLong] })
+          errors.push({
+            path: 'setName',
+            errors: [t('components.AttributeSetEditor.setNameTooLong')],
+          })
         }
 
         if (submitAttempted.value && !draft.rows.length) {
-          errors.push({ path: 'rows', errors: [messages.attributesRequired] })
+          errors.push({
+            path: 'rows',
+            errors: [t('components.AttributeSetEditor.attributesRequired')],
+          })
         }
 
         draft.rows.forEach((row, index) => {
@@ -202,10 +230,10 @@ const removeRow = async (index: number) => {
     <div class="editor-body">
       <fieldset class="editor-fields" :disabled="saving" @input="clearSaved" @change="clearSaved">
         <label class="field">
-          {{ messages.setName }}
+          {{ t('components.AttributeSetEditor.setName') }}
           <input
             v-model="setName"
-            :placeholder="messages.setPlaceholder"
+            :placeholder="t('components.AttributeSetEditor.setPlaceholder')"
             :aria-invalid="Boolean(errors.setName) || undefined"
             :aria-describedby="errors.setName ? `${id}-set-error` : undefined"
             @blur="setFieldValue('setNameTouched', true, false)"
@@ -215,19 +243,19 @@ const removeRow = async (index: number) => {
           {{ errors.setName }}
         </p>
 
-        <h2>{{ messages.attributes }}</h2>
+        <h2>{{ t('components.AttributeSetEditor.attributes') }}</h2>
 
         <fieldset
           v-for="({ key, value: row }, index) in fields"
           :key="key"
-          :aria-label="messages.attribute"
+          :aria-label="t('components.AttributeSetEditor.attribute')"
         >
           <div class="row-fields">
             <label class="field">
-              {{ messages.name }}
+              {{ t('components.AttributeSetEditor.name') }}
               <input
                 v-model="row.name"
-                :placeholder="messages.namePlaceholder"
+                :placeholder="t('components.AttributeSetEditor.namePlaceholder')"
                 autocapitalize="none"
                 :spellcheck="false"
                 :data-row-name="key"
@@ -238,7 +266,7 @@ const removeRow = async (index: number) => {
             </label>
 
             <label class="field">
-              {{ messages.type }}
+              {{ t('components.AttributeSetEditor.type') }}
               <SelectField
                 v-model="row.type"
                 :options="typeOptions"
@@ -249,7 +277,7 @@ const removeRow = async (index: number) => {
             <button
               class="delete"
               type="button"
-              :aria-label="messages.delete.replace('{number}', String(index + 1))"
+              :aria-label="t('components.AttributeSetEditor.delete', { number: index + 1 })"
               @click="removeRow(index)"
             >
               <Trash2 aria-hidden="true" :size="17" />
@@ -260,10 +288,10 @@ const removeRow = async (index: number) => {
           </p>
 
           <label v-if="row.type === 'string'" class="field">
-            {{ messages.choices }}
+            {{ t('components.AttributeSetEditor.choices') }}
             <input
               v-model="row.details.choices"
-              :placeholder="messages.choicesPlaceholder"
+              :placeholder="t('components.AttributeSetEditor.choicesPlaceholder')"
               :aria-invalid="Boolean(rowError(index, 'details')) || undefined"
               :aria-describedby="
                 rowError(index, 'details') ? `${id}-details-error-${key}` : undefined
@@ -274,7 +302,7 @@ const removeRow = async (index: number) => {
 
           <div v-else-if="row.type === 'id'" class="id-details">
             <label class="field">
-              {{ messages.idFormat }}
+              {{ t('components.AttributeSetEditor.idFormat') }}
               <SelectField
                 v-model="row.details.idFormat"
                 :options="formatOptions"
@@ -284,13 +312,13 @@ const removeRow = async (index: number) => {
               />
             </label>
             <p v-if="row.details.idFormat === 'sequential'" :id="`${id}-sequence-${key}`">
-              {{ messages.sequentialHelp }}
+              {{ t('components.AttributeSetEditor.sequentialHelp') }}
             </p>
           </div>
 
           <div v-else-if="row.type !== 'boolean'" :key="row.type" class="range">
             <label v-for="bound in ['min', 'max'] as const" :key="bound" class="field">
-              {{ messages[bound] }}
+              {{ t(`components.AttributeSetEditor.${bound}`) }}
               <input
                 :value="row.details[bound]"
                 @input="row.details[bound] = ($event.target as HTMLInputElement).value"
@@ -314,20 +342,26 @@ const removeRow = async (index: number) => {
 
         <button class="add" type="button" @click="addRow">
           <Plus aria-hidden="true" :size="18" />
-          {{ messages.add }}
+          {{ t('components.AttributeSetEditor.add') }}
         </button>
       </fieldset>
     </div>
 
     <footer>
       <template v-if="saved">
-        <p role="status">{{ messages.saveSuccess }}</p>
-        <button class="save" type="button" @click="startNew">{{ messages.newSet }}</button>
+        <p role="status">{{ t('components.AttributeSetEditor.saveSuccess') }}</p>
+        <button class="save" type="button" @click="startNew">
+          {{ t('components.AttributeSetEditor.newSet') }}
+        </button>
       </template>
       <template v-else>
-        <p v-if="failed" role="alert">{{ messages.saveFailed }}</p>
+        <p v-if="failed" role="alert">{{ t('components.AttributeSetEditor.saveFailed') }}</p>
         <button class="save" type="submit" :disabled="saving">
-          {{ saving ? messages.saving : messages.save }}
+          {{
+            saving
+              ? t('components.AttributeSetEditor.saving')
+              : t('components.AttributeSetEditor.save')
+          }}
         </button>
       </template>
     </footer>

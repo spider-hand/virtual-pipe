@@ -4,6 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import Map from '@/components/Map.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
+import { createAppI18n } from '@/i18n'
+
+const global = { plugins: [createAppI18n('en')] }
 
 const { fitBounds, setData, setTiles, createMap, onLoad, addSource, addLayer } = vi.hoisted(() => ({
   fitBounds: vi.fn<() => void>(),
@@ -52,7 +55,7 @@ describe('Map', () => {
       )
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map)
+    const wrapper = mount(Map, { global })
     const panel = wrapper.get('[role="tabpanel"]:has([role="combobox"])')
     expect(panel.isVisible()).toBe(false)
     await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
@@ -99,7 +102,7 @@ describe('Map', () => {
       .mockResolvedValueOnce(Response.json({ id, status: 'succeeded' }))
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map)
+    const wrapper = mount(Map, { global })
     const style = createMap.mock.calls[0]![0].style
     expect(style).toMatchObject({ sources: { basemap: { type: 'raster' } } })
     expect(style && typeof style === 'object' && style.sources).not.toHaveProperty('pipes')

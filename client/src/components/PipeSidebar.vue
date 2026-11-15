@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { PanelLeftClose, PanelLeftOpen } from '@lucide/vue'
 import { nextTick, ref, useId, useTemplateRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import AttributeSetEditor from '@/components/AttributeSetEditor.vue'
 import PipeSetGenerator from '@/components/PipeSetGenerator.vue'
-import en from '@/locales/en.json'
-import ja from '@/locales/ja.json'
 import type { District } from '@/services'
 
-const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
-const messages = locale.components.PipeSidebar
+const { t } = useI18n({ useScope: 'global' })
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{
   districtChange: [district: District | null]
@@ -62,7 +60,7 @@ const moveTab = async (event: KeyboardEvent) => {
       ref="launcher"
       class="icon-button launcher"
       type="button"
-      :aria-label="messages.open"
+      :aria-label="t('components.PipeSidebar.open')"
       :aria-controls="id"
       :aria-expanded="open"
       @click="toggle"
@@ -70,13 +68,13 @@ const moveTab = async (event: KeyboardEvent) => {
       <PanelLeftOpen aria-hidden="true" :size="20" />
     </button>
 
-    <aside v-show="open" :id="id" :aria-label="messages.label" class="sidebar">
+    <aside v-show="open" :id="id" :aria-label="t('components.PipeSidebar.label')" class="sidebar">
       <header class="sidebar-header">
         <div
           ref="tablist"
           class="tabs"
           role="tablist"
-          :aria-label="messages.label"
+          :aria-label="t('components.PipeSidebar.label')"
           @keydown="moveTab"
         >
           <button
@@ -90,13 +88,13 @@ const moveTab = async (event: KeyboardEvent) => {
             :tabindex="activeTab === tab ? 0 : -1"
             @click="activeTab = tab"
           >
-            {{ messages[tab] }}
+            {{ t(`components.PipeSidebar.${tab}`) }}
           </button>
         </div>
         <button
           class="icon-button close"
           type="button"
-          :aria-label="messages.close"
+          :aria-label="t('components.PipeSidebar.close')"
           @click="toggle"
         >
           <PanelLeftClose aria-hidden="true" :size="20" />

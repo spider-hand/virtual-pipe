@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useDistrictsQuery } from '@/composables/useDistrictsQuery'
-import en from '@/locales/en.json'
-import ja from '@/locales/ja.json'
 import type { District } from '@/services'
 
-const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
-const messages = locale.components.DistrictSearch
+const { t } = useI18n({ useScope: 'global' })
 
 const props = defineProps<{ disabled?: boolean }>()
 const emit = defineEmits<{ select: [district: District]; clearSelection: [] }>()
@@ -88,11 +86,11 @@ const blur = () => {
 
 <template>
   <div class="district-search">
-    <label :for="inputId">{{ messages.label }}</label>
+    <label :for="inputId">{{ t('components.DistrictSearch.label') }}</label>
     <input
       :id="inputId"
       :value="text"
-      :placeholder="messages.placeholder"
+      :placeholder="t('components.DistrictSearch.placeholder')"
       :disabled="disabled"
       role="combobox"
       autocomplete="off"
@@ -112,7 +110,7 @@ const blur = () => {
       :id="listId"
       class="district-results"
       role="listbox"
-      :aria-label="messages.label"
+      :aria-label="t('components.DistrictSearch.label')"
     >
       <li
         v-for="(district, index) in results"
@@ -127,7 +125,13 @@ const blur = () => {
       </li>
     </ul>
     <div v-if="!disabled && focused && open && !expanded" class="district-status" role="status">
-      {{ unavailable ? messages.unavailable : loading ? messages.loading : messages.empty }}
+      {{
+        unavailable
+          ? t('components.DistrictSearch.unavailable')
+          : loading
+            ? t('components.DistrictSearch.loading')
+            : t('components.DistrictSearch.empty')
+      }}
     </div>
   </div>
 </template>

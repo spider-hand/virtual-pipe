@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, useId, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import DistrictSearch from '@/components/DistrictSearch.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import { usePipeSetGenerationQuery } from '@/composables/usePipeSetGenerationQuery'
-import en from '@/locales/en.json'
-import ja from '@/locales/ja.json'
 import type { AttributeDefinition, District } from '@/services'
 
-const locale = navigator.language.toLowerCase().startsWith('ja') ? ja : en
-const messages = locale.components.PipeSetGenerator
+const { t } = useI18n({ useScope: 'global' })
 const props = defineProps<{ active: boolean }>()
 const emit = defineEmits<{
   districtChange: [district: District | null]
@@ -23,7 +21,7 @@ const { status, busy, submit } = usePipeSetGenerationQuery({
 })
 const selectedId = ref('')
 const options = computed(() => [
-  { value: '', label: messages.selectSet, disabled: true },
+  { value: '', label: t('components.PipeSetGenerator.selectSet'), disabled: true },
   ...sets.value.map(({ id, name }) => ({ value: id, label: name })),
 ])
 const district = shallowRef<District | null>(null)
@@ -44,13 +42,13 @@ watch(sets, () => {
 const details = (attribute: AttributeDefinition) => {
   switch (attribute.type) {
     case 'string':
-      return attribute.choices.join(messages.choiceSeparator)
+      return attribute.choices.join(t('components.PipeSetGenerator.choiceSeparator'))
     case 'integer':
     case 'decimal':
     case 'date':
-      return messages.range.replace('{min}', attribute.min).replace('{max}', attribute.max)
+      return t('components.PipeSetGenerator.range', { min: attribute.min, max: attribute.max })
     case 'id':
-      return messages.idFormats[attribute.idFormat]
+      return t(`components.PipeSetGenerator.idFormats.${attribute.idFormat}`)
     case 'boolean':
       return undefined
   }
@@ -73,24 +71,26 @@ const save = () => {
 <template>
   <div class="generator">
     <div class="set-picker">
-      <label :for="`${id}-set`">{{ messages.attributeSet }}</label>
+      <label :for="`${id}-set`">{{ t('components.PipeSetGenerator.attributeSet') }}</label>
       <SelectField
         :id="`${id}-set`"
         v-model="selectedId"
         :options="options"
         :disabled="busy || loading || failed || sets.length === 0"
       />
-      <p v-if="loading" role="status">{{ messages.loading }}</p>
-      <p v-else-if="failed" role="alert">{{ messages.loadFailed }}</p>
-      <p v-else-if="sets.length === 0" role="status">{{ messages.empty }}</p>
+      <p v-if="loading" role="status">{{ t('components.PipeSetGenerator.loading') }}</p>
+      <p v-else-if="failed" role="alert">{{ t('components.PipeSetGenerator.loadFailed') }}</p>
+      <p v-else-if="sets.length === 0" role="status">
+        {{ t('components.PipeSetGenerator.empty') }}
+      </p>
     </div>
 
     <section v-if="selectedSet" :aria-labelledby="`${id}-preview`">
-      <h2 :id="`${id}-preview`">{{ messages.preview }}</h2>
+      <h2 :id="`${id}-preview`">{{ t('components.PipeSetGenerator.preview') }}</h2>
       <dl class="preview">
         <div v-for="attribute in selectedSet.attributes" :key="attribute.name">
           <dt>{{ attribute.name }}</dt>
-          <dd>{{ messages.types[attribute.type] }}</dd>
+          <dd>{{ t(`components.PipeSetGenerator.types.${attribute.type}`) }}</dd>
           <dd v-if="attribute.type !== 'boolean'">{{ details(attribute) }}</dd>
         </div>
       </dl>
@@ -104,9 +104,9 @@ const save = () => {
       :disabled="busy || !selectedSet || !district || loading || failed"
       @click="save"
     >
-      {{ messages.save }}
+      {{ t('components.PipeSetGenerator.save') }}
     </button>
-    <p v-if="status !== 'idle'" role="status">{{ messages[status] }}</p>
+    <p v-if="status !== 'idle'" role="status">{{ t(`components.PipeSetGenerator.${status}`) }}</p>
   </div>
 </template>
 

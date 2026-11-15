@@ -2,6 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import DistrictSearch from '@/components/DistrictSearch.vue'
+import { createAppI18n } from '@/i18n'
+
+const global = { plugins: [createAppI18n('en')] }
 
 const district = {
   code: '14104',
@@ -16,7 +19,7 @@ afterEach(() => {
 
 describe('DistrictSearch', () => {
   it('should render the default state', () => {
-    const wrapper = mount(DistrictSearch)
+    const wrapper = mount(DistrictSearch, { global })
 
     expect(wrapper.get('[role="combobox"]').attributes('aria-expanded')).toBe('false')
     expect(wrapper.find('[role="option"]').exists()).toBe(false)
@@ -30,7 +33,7 @@ describe('DistrictSearch', () => {
       vi.useFakeTimers()
       const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json([district]))
       vi.stubGlobal('fetch', fetch)
-      const wrapper = mount(DistrictSearch)
+      const wrapper = mount(DistrictSearch, { global })
       const input = wrapper.get('input')
 
       await input.trigger('focus')
@@ -75,7 +78,7 @@ describe('DistrictSearch', () => {
       .mockReturnValueOnce(firstRequest)
       .mockResolvedValueOnce(Response.json([latestDistrict]))
     vi.stubGlobal('fetch', fetch)
-    const wrapper = mount(DistrictSearch)
+    const wrapper = mount(DistrictSearch, { global })
     const input = wrapper.get('input')
 
     await input.trigger('focus')

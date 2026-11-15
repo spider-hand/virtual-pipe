@@ -21,7 +21,8 @@
     "@lucide/vue": "^1.73.0",
     "maplibre-gl": "6.18.0",
     "vee-validate": "^4.15.1",
-    "vue": "^3.5.42"
+    "vue": "^3.5.42",
+    "vue-i18n": "^11.4.20"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.42.2",

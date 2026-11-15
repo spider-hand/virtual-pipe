@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 
 import PipeSidebar from '@/components/PipeSidebar.vue'
+import { createAppI18n } from '@/i18n'
+
+const global = { plugins: [createAppI18n('en')] }
 
 describe('PipeSidebar', () => {
   it('should preserve the draft across keyboard tab changes and reopening', async () => {
@@ -13,7 +16,7 @@ describe('PipeSidebar', () => {
         setup: () => ({ open: ref(true) }),
         template: '<PipeSidebar v-model:open="open" />',
       }),
-      { attachTo: document.body },
+      { global, attachTo: document.body },
     )
     const [attributes, generate] = wrapper.findAll('[role="tab"]')
     const name = wrapper.get('[role="tabpanel"][id$="-attributes"] input')
