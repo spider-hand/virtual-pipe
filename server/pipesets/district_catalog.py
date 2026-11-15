@@ -9,7 +9,7 @@ DATA_DIR = Path(
     os.environ.get("DISTRICT_DATA_DIR", Path(__file__).resolve().parents[2] / "data")
 )
 SOURCE = DATA_DIR / "N03-20260101.shp"
-CATALOG = DATA_DIR / "districts-2026-v3.duckdb"
+CATALOG = DATA_DIR / "districts-2026-v1.duckdb"
 
 logger = logging.getLogger(__name__)
 
