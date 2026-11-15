@@ -8,7 +8,7 @@ import type { District } from '@/services'
 
 const { t } = useI18n({ useScope: 'global' })
 
-const props = defineProps<{ disabled?: boolean }>()
+const props = defineProps<{ disabled?: boolean; selectionRequired?: boolean }>()
 const emit = defineEmits<{ select: [district: District]; clearSelection: [] }>()
 const { results, loading, unavailable, search, clear } = useDistrictsQuery()
 const text = ref('')
@@ -97,6 +97,8 @@ const blur = () => {
         aria-autocomplete="list"
         :aria-expanded="expanded"
         :aria-controls="listId"
+        :aria-invalid="selectionRequired || undefined"
+        :aria-describedby="selectionRequired ? `${listId}-error` : undefined"
         :aria-activedescendant="expanded && active >= 0 ? optionId(active) : undefined"
         @focus="focused = true"
         @blur="blur"
@@ -106,6 +108,9 @@ const blur = () => {
         @keydown="handleKey"
       />
     </FormField>
+    <p v-if="selectionRequired" :id="`${listId}-error`" class="error" role="alert">
+      {{ t('components.DistrictSearch.selectionRequired') }}
+    </p>
     <ul
       v-show="expanded"
       :id="listId"
@@ -141,6 +146,11 @@ const blur = () => {
 .district-search {
   display: grid;
   gap: var(--space-xs);
+}
+
+.error {
+  margin: 0;
+  color: color-mix(in srgb, var(--color-error) 68%, var(--color-ink));
 }
 
 .district-results,

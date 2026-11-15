@@ -3,6 +3,7 @@
     "DistrictSearch": {
       "label": "Search Japanese districts",
       "placeholder": "Prefecture, city, or ward",
+      "selectionRequired": "Select a district.",
       "loading": "Searching…",
       "empty": "No matching districts",
       "unavailable": "District search is unavailable"
@@ -26,6 +27,7 @@
       "nameTooLong": "Use 255 characters or fewer.",
       "attributeSet": "Attribute set",
       "selectSet": "Select an attribute set",
+      "setRequired": "Select an attribute set.",
       "loading": "Loading attribute sets…",
       "loadFailed": "Could not load attribute sets.",
       "empty": "Create an attribute set in the Attribute Set tab to get started.",

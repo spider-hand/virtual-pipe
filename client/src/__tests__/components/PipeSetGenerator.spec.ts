@@ -76,6 +76,7 @@ describe('PipeSetGenerator', () => {
 
     expect(wrapper.get('select').element.disabled).toBe(true)
     expect(wrapper.findAll('button').map((button) => button.text())).toEqual(['Save Pipe Set'])
+    expect(wrapper.get('button.save').element.disabled).toBe(true)
 
     wrapper.unmount()
   })
@@ -90,6 +91,7 @@ describe('PipeSetGenerator', () => {
 
     expect(wrapper.get('[role="status"]').text()).toContain('Create an attribute set')
     expect(wrapper.get('select').element.disabled).toBe(true)
+    expect(wrapper.get('button.save').element.disabled).toBe(true)
 
     wrapper.unmount()
   })
@@ -133,6 +135,36 @@ describe('PipeSetGenerator', () => {
     wrapper.unmount()
   })
 
+  it('should validate untouched fields before requesting a save', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json([set]))
+    vi.stubGlobal('fetch', fetch)
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: true },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const save = wrapper.get('button.save')
+    expect(save.element.disabled).toBe(false)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+
+    await save.trigger('click')
+
+    expect(wrapper.findAll('[role="alert"]').map((alert) => alert.text())).toEqual([
+      'Enter a pipe set name.',
+      'Select an attribute set.',
+      'Select a district.',
+    ])
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    const select = wrapper.get('select')
+    await select.setValue(set.id)
+    expect(select.attributes('aria-invalid')).toBeUndefined()
+
+    wrapper.unmount()
+  })
+
   it('should require a valid name and preserve the form if submission fails', async () => {
     vi.useFakeTimers()
     const fetch = vi
@@ -152,7 +184,7 @@ describe('PipeSetGenerator', () => {
     const save = wrapper.get('button.save')
 
     await select.setValue(set.id)
-    expect(save.element.disabled).toBe(true)
+    expect(save.element.disabled).toBe(false)
     await search.trigger('focus')
     await search.setValue('神恵内村')
     await vi.advanceTimersByTimeAsync(200)
@@ -190,7 +222,10 @@ describe('PipeSetGenerator', () => {
     expect(save.element.disabled).toBe(false)
 
     await search.setValue('北海道')
-    expect(save.element.disabled).toBe(true)
+    expect(save.element.disabled).toBe(false)
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.get('[role="alert"]').text()).toBe('Select a district.')
+    expect(fetch).toHaveBeenCalledTimes(3)
 
     wrapper.unmount()
   })

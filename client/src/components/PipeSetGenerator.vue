@@ -24,6 +24,7 @@ const { status, busy, submit } = usePipeSetsQuery({
 const selectedId = ref('')
 const name = ref('')
 const nameTouched = ref(false)
+const submitAttempted = ref(false)
 const nameError = computed(() => {
   const error = getSetNameError(name.value, nameTouched.value)
   if (error === 'required') return t('components.PipeSetGenerator.nameRequired')
@@ -36,13 +37,12 @@ const options = computed(() => [
 ])
 const district = shallowRef<District | null>(null)
 const selectedSet = computed(() => sets.value.find((set) => set.id === selectedId.value))
-const selection = computed(() => {
-  if (busy.value || loading.value || failed.value || !selectedSet.value || !district.value) {
-    return undefined
-  }
-
-  return { attributeSetId: selectedSet.value.id, districtId: district.value.code }
-})
+const saveDisabled = computed(
+  () => busy.value || loading.value || failed.value || !sets.value.length,
+)
+const setInvalid = computed(
+  () => submitAttempted.value && !saveDisabled.value && !selectedSet.value,
+)
 
 watch(sets, () => {
   if (!selectedSet.value) selectedId.value = ''
@@ -71,10 +71,18 @@ const setDistrict = (next: District | null) => {
 }
 
 const save = () => {
-  nameTouched.value = true
-  if (nameError.value || !selection.value) return
+  if (saveDisabled.value) return
 
-  void submit({ name: name.value.trim(), ...selection.value })
+  submitAttempted.value = true
+  nameTouched.value = true
+  if (nameError.value || !selectedSet.value || !district.value) return
+
+  submitAttempted.value = false
+  void submit({
+    name: name.value.trim(),
+    attributeSetId: selectedSet.value.id,
+    districtId: district.value.code,
+  })
 }
 </script>
 
@@ -102,13 +110,19 @@ const save = () => {
         <SelectField
           v-model="selectedId"
           :options="options"
-          :disabled="busy || loading || failed || sets.length === 0"
+          :disabled="saveDisabled"
+          :aria-invalid="setInvalid || undefined"
+          :aria-describedby="setInvalid ? `${id}-set-error` : undefined"
+          required
         />
       </FormField>
       <p v-if="loading" role="status">{{ t('components.PipeSetGenerator.loading') }}</p>
       <p v-else-if="failed" role="alert">{{ t('components.PipeSetGenerator.loadFailed') }}</p>
       <p v-else-if="sets.length === 0" role="status">
         {{ t('components.PipeSetGenerator.empty') }}
+      </p>
+      <p v-else-if="setInvalid" :id="`${id}-set-error`" class="error" role="alert">
+        {{ t('components.PipeSetGenerator.setRequired') }}
       </p>
     </div>
 
@@ -123,9 +137,14 @@ const save = () => {
       </dl>
     </section>
 
-    <DistrictSearch :disabled="busy" @select="setDistrict" @clear-selection="setDistrict(null)" />
+    <DistrictSearch
+      :disabled="busy"
+      :selection-required="submitAttempted && !district"
+      @select="setDistrict"
+      @clear-selection="setDistrict(null)"
+    />
 
-    <button class="save" type="submit" :disabled="!selection">
+    <button class="save" type="submit" :disabled="saveDisabled">
       {{ t('components.PipeSetGenerator.save') }}
     </button>
     <p v-if="status !== 'idle'" role="status">{{ t(`components.PipeSetGenerator.${status}`) }}</p>
