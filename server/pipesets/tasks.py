@@ -8,7 +8,7 @@ from celery import shared_task
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection, transaction
 
-from pipesets.district_catalog import get_district
+from pipesets.district_catalog import get_district, get_prefecture
 from pipesets.models import Pipe, PipeSet
 
 logger = logging.getLogger(__name__)
@@ -52,11 +52,19 @@ def populate_pipes(pipeset):
         raise GenerationError("The pipe set has no associated attribute set.")
 
     rules = pipeset.attribute_set.attributes
-    district = get_district(pipeset.district_id)
-    if district is None:
-        raise GenerationError("The district is missing from the district catalog.")
+    if pipeset.prefecture_id:
+        area_name = "prefecture"
+        area = get_prefecture(pipeset.prefecture_id)
+    else:
+        area_name = "district"
+        area = get_district(pipeset.district_id)
 
-    _, boundary = district
+    if area is None:
+        raise GenerationError(
+            f"The {area_name} is missing from the {area_name} catalog."
+        )
+
+    _, boundary = area
     with connection.cursor() as cursor:
         cursor.execute("SELECT to_regclass('osm.roads')")
         if cursor.fetchone()[0] is None:
@@ -66,14 +74,14 @@ def populate_pipes(pipeset):
     with connection.chunked_cursor() as cursor:
         cursor.execute(
             """
-            WITH district AS (
+            WITH area AS (
                 SELECT ST_GeomFromWKB(%s, 4326) AS geom
             )
             SELECT ST_AsBinary(segment.geom)
-            FROM district
-            JOIN osm.roads ON ST_Intersects(roads.geom, district.geom)
+            FROM area
+            JOIN osm.roads ON ST_Intersects(roads.geom, area.geom)
             CROSS JOIN LATERAL ST_Dump(
-                ST_CollectionExtract(ST_Intersection(roads.geom, district.geom), 2)
+                ST_CollectionExtract(ST_Intersection(roads.geom, area.geom), 2)
             ) AS segment
             WHERE ST_Length(segment.geom) > 0
             ORDER BY roads.osm_id, segment.path
@@ -100,7 +108,7 @@ def populate_pipes(pipeset):
 
     if not sequence:
         raise GenerationError(
-            "The active OSM import has no roads within this district."
+            f"The active OSM import has no roads within this {area_name}."
         )
 
 

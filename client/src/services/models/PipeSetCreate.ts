@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * 
+ * Provide exactly one of district_id and prefecture_id.
  * @export
  * @interface PipeSetCreate
  */
@@ -26,7 +26,11 @@ export interface PipeSetCreate {
     /**
      * 
      */
-    districtId: string;
+    districtId?: string;
+    /**
+     * Two-digit prefecture code, including any leading zero.
+     */
+    prefectureId?: string;
     /**
      * 
      */
@@ -38,7 +42,6 @@ export interface PipeSetCreate {
  */
 export function instanceOfPipeSetCreate(value: object): value is PipeSetCreate {
     if (!('name' in value) || value['name'] === undefined) return false;
-    if ((!('districtId' in (value as Record<string, any>)) && !('district_id' in (value as Record<string, any>))) || ((value as Record<string, any>)['districtId'] === undefined && (value as Record<string, any>)['district_id'] === undefined)) return false;
     if ((!('attributeSetId' in (value as Record<string, any>)) && !('attribute_set_id' in (value as Record<string, any>))) || ((value as Record<string, any>)['attributeSetId'] === undefined && (value as Record<string, any>)['attribute_set_id'] === undefined)) return false;
     return true;
 }
@@ -54,7 +57,8 @@ export function PipeSetCreateFromJSONTyped(json: any, ignoreDiscriminator: boole
     return {
         
         'name': json['name'],
-        'districtId': json['district_id'],
+        'districtId': json['district_id'] == null ? undefined : json['district_id'],
+        'prefectureId': json['prefecture_id'] == null ? undefined : json['prefecture_id'],
         'attributeSetId': json['attribute_set_id'],
     };
 }
@@ -72,6 +76,7 @@ export function PipeSetCreateToJSONTyped(value?: PipeSetCreate | null, ignoreDis
         
         'name': value['name'],
         'district_id': value['districtId'],
+        'prefecture_id': value['prefectureId'],
         'attribute_set_id': value['attributeSetId'],
     };
 }

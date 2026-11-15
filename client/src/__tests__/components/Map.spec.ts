@@ -47,49 +47,61 @@ describe('Map', () => {
     vi.clearAllMocks()
   })
 
-  it('should fit and highlight the chosen district until the search text is edited', async () => {
-    vi.useFakeTimers()
-    const bounds = [139.5, 35.4, 139.7, 35.5]
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(Response.json([]))
-      .mockResolvedValueOnce(Response.json([]))
-      .mockResolvedValueOnce(
-        Response.json([{ code: '14104', label: '神奈川県 横浜市 中区', bounds }]),
-      )
-    vi.stubGlobal('fetch', fetch)
+  it.each(['district', 'prefecture'])(
+    'should fit and highlight the chosen %s until the search text is edited',
+    async (areaType) => {
+      vi.useFakeTimers()
+      const bounds = [139.5, 35.4, 139.7, 35.5]
+      const result = {
+        code: areaType === 'district' ? '14104' : '14',
+        label: areaType === 'district' ? '神奈川県 横浜市 中区' : '神奈川県',
+        bounds,
+      }
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(Response.json([]))
+        .mockResolvedValueOnce(Response.json([]))
+        .mockResolvedValueOnce(Response.json(areaType === 'prefecture' ? [result] : []))
+        .mockResolvedValueOnce(Response.json([result]))
+      vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
-    const panel = wrapper.get('[role="tabpanel"]:has([role="combobox"])')
-    expect(panel.isVisible()).toBe(false)
-    await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
-    const input = wrapper.get('input[role="combobox"]')
+      const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
+      const panel = wrapper.get('[role="tabpanel"]:has([role="combobox"])')
+      expect(panel.isVisible()).toBe(false)
+      await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
+      if (areaType === 'prefecture') {
+        await wrapper.get('input[value="prefecture"]').setValue()
+      }
+      const input = wrapper.get('input[role="combobox"]')
 
-    await input.trigger('focus')
-    await input.setValue('横浜市')
-    await vi.advanceTimersByTimeAsync(200)
-    await flushPromises()
-    await wrapper.get('[role="option"]').trigger('click')
+      await input.trigger('focus')
+      if (areaType === 'district') {
+        await input.setValue('横浜市')
+        await vi.advanceTimersByTimeAsync(200)
+      }
+      await flushPromises()
+      await wrapper.get('[role="option"]').trigger('click')
 
-    expect(fitBounds).toHaveBeenCalledExactlyOnceWith(bounds, { padding: 48 })
-    expect(setData).toHaveBeenLastCalledWith({
-      type: 'Polygon',
-      coordinates: [
-        [
-          [139.5, 35.4],
-          [139.7, 35.4],
-          [139.7, 35.5],
-          [139.5, 35.5],
-          [139.5, 35.4],
+      expect(fitBounds).toHaveBeenCalledExactlyOnceWith(bounds, { padding: 48 })
+      expect(setData).toHaveBeenLastCalledWith({
+        type: 'Polygon',
+        coordinates: [
+          [
+            [139.5, 35.4],
+            [139.7, 35.4],
+            [139.7, 35.5],
+            [139.5, 35.5],
+            [139.5, 35.4],
+          ],
         ],
-      ],
-    })
+      })
 
-    await input.setValue('横浜')
-    expect(setData).toHaveBeenLastCalledWith({ type: 'FeatureCollection', features: [] })
+      await input.setValue('横浜')
+      expect(setData).toHaveBeenLastCalledWith({ type: 'FeatureCollection', features: [] })
 
-    wrapper.unmount()
-  })
+      wrapper.unmount()
+    },
+  )
 
   it('should start with the newest pipeset and fit the map to another selected pipeset', async () => {
     vi.stubGlobal(
@@ -129,6 +141,7 @@ describe('Map', () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json([{ id: attributeSetId, name: 'Mains', attributes: [] }]))
+      .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(
         Response.json([{ code: '14104', label: '横浜市', bounds: [139.5, 35.4, 139.7, 35.5] }]),
       )

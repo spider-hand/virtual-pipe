@@ -5,12 +5,12 @@ import { useI18n } from 'vue-i18n'
 
 import AttributeSetEditor from '@/components/AttributeSetEditor.vue'
 import PipeSetGenerator from '@/components/PipeSetGenerator.vue'
-import type { District } from '@/services'
+import type { District, Prefecture } from '@/services'
 
 const { t } = useI18n({ useScope: 'global' })
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{
-  districtChange: [district: District | null]
+  areaChange: [area: District | Prefecture | null]
   pipesetReady: [id: string]
 }>()
 const tabs = ['attributes', 'generate'] as const
@@ -120,7 +120,7 @@ const moveTab = async (event: KeyboardEvent) => {
       >
         <PipeSetGenerator
           :active="open && activeTab === 'generate'"
-          @district-change="emit('districtChange', $event)"
+          @area-change="emit('areaChange', $event)"
           @pipeset-ready="emit('pipesetReady', $event)"
         />
       </div>

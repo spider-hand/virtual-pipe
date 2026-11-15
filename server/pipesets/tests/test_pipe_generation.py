@@ -12,6 +12,7 @@ from pipesets.tasks import generate_attribute, generate_pipeset
 
 DISTRICT_ID = "01234"
 DISTRICT_LABEL = "Sample Municipality"
+PREFECTURE_ID = "01"
 BOUNDARY = (
     "MULTIPOLYGON(((0 0, 6 0, 6 6, 0 6, 0 0),"
     "(2 2, 2 4, 4 4, 4 2, 2 2)),"
@@ -27,12 +28,20 @@ def catalog(tmp_path, monkeypatch):
     monkeypatch.setattr("pipesets.district_catalog.CATALOG", path)
 
     with duckdb.connect(str(path)) as catalog:
+        boundary = bytes(GEOSGeometry(BOUNDARY).wkb)
         catalog.execute(
             "CREATE TABLE districts (code VARCHAR, label VARCHAR, boundary_wkb BLOB)"
         )
         catalog.execute(
             "INSERT INTO districts VALUES (?, ?, ?)",
-            [DISTRICT_ID, DISTRICT_LABEL, bytes(GEOSGeometry(BOUNDARY).wkb)],
+            [DISTRICT_ID, DISTRICT_LABEL, boundary],
+        )
+        catalog.execute(
+            "CREATE TABLE prefectures (code VARCHAR, label VARCHAR, boundary_wkb BLOB)"
+        )
+        catalog.execute(
+            "INSERT INTO prefectures VALUES (?, ?, ?)",
+            [PREFECTURE_ID, "北海道", boundary],
         )
 
     return path
@@ -74,8 +83,11 @@ def roads(db):
 
 
 @pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "area_id", [{"district_id": DISTRICT_ID}, {"prefecture_id": PREFECTURE_ID}]
+)
 def test_create_pipeset_commits_the_pending_set_before_publishing(
-    client, catalog, attribute_set, monkeypatch
+    client, catalog, attribute_set, monkeypatch, area_id
 ):
     published = []
 
@@ -92,7 +104,7 @@ def test_create_pipeset_commits_the_pending_set_before_publishing(
         "/api/pipesets/",
         {
             "name": "  Demo mains  ",
-            "district_id": DISTRICT_ID,
+            **area_id,
             "attribute_set_id": str(attribute_set.id),
         },
         content_type="application/json",
@@ -102,7 +114,8 @@ def test_create_pipeset_commits_the_pending_set_before_publishing(
     assert published == [response.json()["id"]]
     pipe_set = PipeSet.objects.get(pk=published[0])
     assert pipe_set.name == "Demo mains"
-    assert pipe_set.district_id == DISTRICT_ID
+    assert pipe_set.district_id == area_id.get("district_id", "")
+    assert pipe_set.prefecture_id == area_id.get("prefecture_id", "")
     assert pipe_set.attribute_set == attribute_set
     assert not pipe_set.pipe_set.exists()
 
@@ -140,6 +153,12 @@ def test_create_pipeset_requires_a_name(client):
         ("district_id", "1234"),
         ("district_id", 12345),
         ("district_id", "0123a"),
+        ("prefecture_id", "1"),
+        ("prefecture_id", 1),
+        ("prefecture_id", "０１"),
+        ("prefecture_id", "01 "),
+        ("prefecture_id", ""),
+        ("prefecture_id", None),
         ("attribute_set_id", "bad-id"),
         ("attribute_set_id", 1),
     ],
@@ -147,10 +166,12 @@ def test_create_pipeset_requires_a_name(client):
 def test_create_pipeset_rejects_malformed_ids(client, field, value):
     payload = {
         "name": "Demo mains",
-        "district_id": DISTRICT_ID,
         "attribute_set_id": str(uuid4()),
         field: value,
     }
+
+    if field == "attribute_set_id":
+        payload["district_id"] = DISTRICT_ID
 
     response = client.post("/api/pipesets/", payload, content_type="application/json")
 
@@ -160,29 +181,60 @@ def test_create_pipeset_rejects_malformed_ids(client, field, value):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("missing", ["district", "attribute_set"])
+@pytest.mark.parametrize(
+    "area_ids", [{}, {"district_id": DISTRICT_ID, "prefecture_id": PREFECTURE_ID}]
+)
+def test_create_pipeset_requires_exactly_one_area(client, area_ids):
+    response = client.post(
+        "/api/pipesets/",
+        {"name": "Demo mains", "attribute_set_id": str(uuid4()), **area_ids},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert not PipeSet.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("area_id", "detail"),
+    [
+        ({"district_id": "99999"}, "District not found."),
+        ({"prefecture_id": "99"}, "Prefecture not found."),
+        ({"district_id": DISTRICT_ID}, "Attribute set not found."),
+    ],
+)
 def test_create_pipeset_returns_not_found_for_unknown_ids(
-    client, catalog, attribute_set, missing
+    client, catalog, attribute_set, area_id, detail
 ):
-    district_id = "99999" if missing == "district" else DISTRICT_ID
-    attribute_set_id = uuid4() if missing == "attribute_set" else attribute_set.id
+    attribute_set_id = (
+        uuid4() if detail == "Attribute set not found." else attribute_set.id
+    )
 
     response = client.post(
         "/api/pipesets/",
         {
             "name": "Demo mains",
-            "district_id": district_id,
+            **area_id,
             "attribute_set_id": str(attribute_set_id),
         },
         content_type="application/json",
     )
 
     assert response.status_code == 404
+    assert response.json()["detail"] == detail
     assert not PipeSet.objects.exists()
 
 
+@pytest.mark.parametrize(
+    ("area_id", "area"),
+    [
+        ({"district_id": DISTRICT_ID}, "district"),
+        ({"prefecture_id": PREFECTURE_ID}, "prefecture"),
+    ],
+)
 def test_create_pipeset_reports_unavailable_catalog(
-    client, attribute_set, monkeypatch, tmp_path
+    client, attribute_set, monkeypatch, tmp_path, area_id, area
 ):
     monkeypatch.setattr(
         "pipesets.district_catalog.CATALOG", tmp_path / "missing.duckdb"
@@ -192,13 +244,14 @@ def test_create_pipeset_reports_unavailable_catalog(
         "/api/pipesets/",
         {
             "name": "Demo mains",
-            "district_id": DISTRICT_ID,
+            **area_id,
             "attribute_set_id": str(attribute_set.id),
         },
         content_type="application/json",
     )
 
     assert response.status_code == 503
+    assert response.json()["detail"] == f"The {area} catalog is unavailable."
     assert not PipeSet.objects.exists()
 
 
@@ -228,7 +281,15 @@ def test_create_pipeset_records_failure_if_the_broker_is_unavailable(
     assert not Pipe.objects.exists()
 
 
-def test_generation_clips_crossing_roads_and_keeps_inside_roads(pending_set, roads):
+@pytest.mark.parametrize("area", ["district", "prefecture"])
+def test_generation_clips_crossing_roads_and_keeps_inside_roads(
+    pending_set, roads, area
+):
+    if area == "prefecture":
+        pending_set.district_id = ""
+        pending_set.prefecture_id = PREFECTURE_ID
+        pending_set.save(update_fields=["district_id", "prefecture_id"])
+
     roads(20, "LINESTRING(-1 3, 11 3)")
     roads(10, "LINESTRING(1 1, 2 1)")
     roads(30, "LINESTRING(-1 1, 0 0)")
@@ -277,6 +338,19 @@ def test_generation_fails_when_the_import_has_no_roads_in_the_district(
     pending_set.refresh_from_db()
     assert pending_set.status == PipeSet.Status.FAILED
     assert "no roads within this district" in pending_set.failure_reason
+    assert not Pipe.objects.exists()
+
+
+def test_generation_fails_when_the_prefecture_boundary_is_missing(pending_set):
+    pending_set.district_id = ""
+    pending_set.prefecture_id = "99"
+    pending_set.save(update_fields=["district_id", "prefecture_id"])
+
+    generate_pipeset(str(pending_set.pk))
+
+    pending_set.refresh_from_db()
+    assert pending_set.status == PipeSet.Status.FAILED
+    assert "prefecture is missing" in pending_set.failure_reason
     assert not Pipe.objects.exists()
 
 

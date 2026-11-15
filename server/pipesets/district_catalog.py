@@ -112,6 +112,13 @@ def get_district(code):
         ).fetchone()
 
 
+def get_prefecture(code):
+    with duckdb.connect(str(CATALOG), read_only=True) as connection:
+        return connection.execute(
+            "SELECT label, boundary_wkb FROM prefectures WHERE code = ?", [code]
+        ).fetchone()
+
+
 def search_districts(query):
     if not CATALOG.is_file():
         return None
@@ -138,24 +145,13 @@ def search_districts(query):
     ]
 
 
-def search_prefectures(query):
+def list_prefectures():
     if not CATALOG.is_file():
         return None
 
     with duckdb.connect(str(CATALOG), read_only=True) as connection:
         rows = connection.execute(
-            """
-            SELECT code, label, bounds
-            FROM prefectures
-            WHERE contains(label, $query)
-            ORDER BY CASE
-                WHEN label = $query THEN 0
-                WHEN starts_with(label, $query) THEN 1
-                ELSE 2
-            END, label, code
-            LIMIT 10
-            """,
-            {"query": query},
+            "SELECT code, label, bounds FROM prefectures ORDER BY code"
         ).fetchall()
 
     return [

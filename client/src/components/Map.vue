@@ -12,7 +12,7 @@ import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import PipeSetSelector from '@/components/PipeSetSelector.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
 import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
-import type { District } from '@/services'
+import type { District, Prefecture } from '@/services'
 
 defineOptions({ name: 'PipeMap' })
 
@@ -24,7 +24,7 @@ const { sets, loading, failed, load } = usePipeSetsQuery()
 const selectedId = ref('')
 let map: MapLibreMap | undefined
 let mapReady = false
-let districtBounds: [number, number, number, number] | null = null
+let areaBounds: [number, number, number, number] | null = null
 
 const refreshPipeSets = async (preferredId?: string) => {
   const result = await load()
@@ -95,16 +95,16 @@ const showPipeSet = () => {
 
 watch(selectedId, showPipeSet)
 
-const showDistrictBounds = () => {
+const showAreaBounds = () => {
   const source = map?.getSource<GeoJSONSource>('district-bounds')
   if (!source) return
 
-  if (!districtBounds) {
+  if (!areaBounds) {
     source.setData({ type: 'FeatureCollection', features: [] })
     return
   }
 
-  const [west, south, east, north] = districtBounds
+  const [west, south, east, north] = areaBounds
   source.setData({
     type: 'Polygon',
     coordinates: [
@@ -119,16 +119,16 @@ const showDistrictBounds = () => {
   })
 }
 
-const selectDistrict = (district: District | null) => {
-  const [west, south, east, north] = district?.bounds ?? []
-  districtBounds =
+const selectArea = (area: District | Prefecture | null) => {
+  const [west, south, east, north] = area?.bounds ?? []
+  areaBounds =
     west !== undefined && south !== undefined && east !== undefined && north !== undefined
       ? [west, south, east, north]
       : null
 
-  showDistrictBounds()
+  showAreaBounds()
 
-  if (districtBounds) fitMapBounds(districtBounds)
+  if (areaBounds) fitMapBounds(areaBounds)
 }
 
 onMounted(() => {
@@ -185,7 +185,7 @@ onMounted(() => {
 
   map.once('style.load', () => {
     mapReady = true
-    showDistrictBounds()
+    showAreaBounds()
     showPipeSet()
   })
 
@@ -209,7 +209,7 @@ onUnmounted(() => map?.remove())
       <PipeSidebar
         v-model:open="sidebarOpen"
         class="pipe-tools"
-        @district-change="selectDistrict"
+        @area-change="selectArea"
         @pipeset-ready="selectGeneratedPipeSet"
       />
     </div>

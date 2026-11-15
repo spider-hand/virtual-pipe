@@ -48,16 +48,35 @@ class UUIDTextField(serializers.UUIDField):
 
 
 class PipeSetCreateSerializer(serializers.Serializer):
+    """Provide exactly one of district_id and prefecture_id."""
+
     name = TextField(
         max_length=255, help_text="Display name for the generated pipe set."
     )
     district_id = TextField(
+        required=False,
         trim_whitespace=False,
         min_length=5,
         max_length=5,
         validators=[RegexValidator(r"\A[0-9]{5}\Z")],
     )
+    prefecture_id = TextField(
+        required=False,
+        help_text="Two-digit prefecture code, including any leading zero.",
+        trim_whitespace=False,
+        min_length=2,
+        max_length=2,
+        validators=[RegexValidator(r"\A[0-9]{2}\Z")],
+    )
     attribute_set_id = UUIDTextField()
+
+    def validate(self, attrs):
+        if ("district_id" in attrs) == ("prefecture_id" in attrs):
+            raise serializers.ValidationError(
+                "Provide exactly one of district_id and prefecture_id."
+            )
+
+        return attrs
 
 
 class PipeSetAcceptedSerializer(serializers.Serializer):

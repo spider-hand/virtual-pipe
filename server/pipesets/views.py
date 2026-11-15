@@ -17,7 +17,12 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from pipesets.district_catalog import get_district, search_districts, search_prefectures
+from pipesets.district_catalog import (
+    get_district,
+    get_prefecture,
+    list_prefectures,
+    search_districts,
+)
 from pipesets.models import AttributeSet, PipeSet
 from pipesets.serializers import (
     AttributeSetCreateSerializer,
@@ -73,26 +78,35 @@ def pipesets(request):
 
     serializer = PipeSetCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    district_id = serializer.validated_data["district_id"]
+    district_id = serializer.validated_data.get("district_id", "")
+    prefecture_id = serializer.validated_data.get("prefecture_id", "")
     attribute_set_id = serializer.validated_data["attribute_set_id"]
 
     attribute_set = AttributeSet.objects.filter(pk=attribute_set_id).first()
     if attribute_set is None:
         return Response({"detail": "Attribute set not found."}, status=404)
 
+    area_name = "Prefecture" if prefecture_id else "District"
     try:
-        district = get_district(district_id)
+        area = (
+            get_prefecture(prefecture_id)
+            if prefecture_id
+            else get_district(district_id)
+        )
     except OSError, duckdb.Error:
-        logger.exception("Could not query the district catalog")
-        return Response({"detail": "The district catalog is unavailable."}, status=503)
+        logger.exception("Could not query the %s catalog", area_name.lower())
+        return Response(
+            {"detail": f"The {area_name.lower()} catalog is unavailable."}, status=503
+        )
 
-    if district is None:
-        return Response({"detail": "District not found."}, status=404)
+    if area is None:
+        return Response({"detail": f"{area_name} not found."}, status=404)
 
     with transaction.atomic(durable=True):
         pipeset = PipeSet.objects.create(
             name=serializer.validated_data["name"],
             district_id=district_id,
+            prefecture_id=prefecture_id,
             attribute_set=attribute_set,
             status=PipeSet.Status.PENDING,
         )
@@ -152,13 +166,26 @@ def get_pipeset_status(request, id):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def districts(request):
-    return _search_areas(request, search_districts, DistrictSerializer, "District")
+    query = "".join(
+        unicodedata.normalize("NFKC", request.query_params.get("q", "")).split()
+    )
+    if not query:
+        return Response([])
+
+    try:
+        matches = search_districts(query)
+    except duckdb.Error:
+        logger.exception("Could not query the district catalog")
+    else:
+        if matches is not None:
+            return Response(DistrictSerializer(matches, many=True).data)
+
+    return Response({"detail": "District search is unavailable."}, status=503)
 
 
 @extend_schema(
-    operation_id="searchPrefectures",
+    operation_id="listPrefectures",
     tags=["prefectures"],
-    parameters=[OpenApiParameter("q", str, description="Japanese place name")],
     responses={
         200: PrefectureSerializer(many=True),
         503: PrefectureSearchErrorSerializer,
@@ -168,28 +195,15 @@ def districts(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def prefectures(request):
-    return _search_areas(
-        request, search_prefectures, PrefectureSerializer, "Prefecture"
-    )
-
-
-def _search_areas(request, search, serializer, area_name):
-    query = "".join(
-        unicodedata.normalize("NFKC", request.query_params.get("q", "")).split()
-    )
-
-    if not query:
-        return Response([])
-
     try:
-        matches = search(query)
+        entries = list_prefectures()
     except duckdb.Error:
-        logger.exception("Could not query the %s catalog", area_name.lower())
+        logger.exception("Could not query the prefecture catalog")
     else:
-        if matches is not None:
-            return Response(serializer(matches, many=True).data)
+        if entries is not None:
+            return Response(PrefectureSerializer(entries, many=True).data)
 
-    return Response({"detail": f"{area_name} search is unavailable."}, status=503)
+    return Response({"detail": "Prefecture search is unavailable."}, status=503)
 
 
 @extend_schema(

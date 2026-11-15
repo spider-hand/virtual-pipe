@@ -1,12 +1,22 @@
 {
   "components": {
-    "DistrictSearch": {
-      "label": "Search Japanese districts",
-      "placeholder": "Prefecture, city, or ward",
-      "selectionRequired": "Select a district.",
-      "loading": "Searching…",
-      "empty": "No matching districts",
-      "unavailable": "District search is unavailable"
+    "AreaSearch": {
+      "district": {
+        "label": "Search Japanese districts",
+        "placeholder": "Prefecture, city, or ward",
+        "selectionRequired": "Select a district.",
+        "loading": "Searching…",
+        "empty": "No matching districts",
+        "unavailable": "District search is unavailable"
+      },
+      "prefecture": {
+        "label": "Search Japanese prefectures",
+        "placeholder": "Prefecture name",
+        "selectionRequired": "Select a prefecture.",
+        "loading": "Loading prefectures…",
+        "empty": "No matching prefectures",
+        "unavailable": "Could not load prefectures"
+      }
     },
     "PipeSidebar": {
       "label": "Pipe tools",
@@ -22,6 +32,9 @@
       "loadFailed": "Could not load pipe sets."
     },
     "PipeSetGenerator": {
+      "areaType": "Area type",
+      "district": "District",
+      "prefecture": "Prefecture",
       "name": "Pipe set name",
       "nameRequired": "Enter a pipe set name.",
       "nameTooLong": "Use 255 characters or fewer.",

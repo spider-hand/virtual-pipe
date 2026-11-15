@@ -2,18 +2,20 @@
 import { computed, ref, shallowRef, toRef, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import AreaSearch from '@/components/AreaSearch.vue'
 import DistrictSearch from '@/components/DistrictSearch.vue'
 import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
-import type { AttributeDefinition, District } from '@/services'
+import { usePrefecturesQuery } from '@/composables/usePrefecturesQuery'
+import type { AttributeDefinition, District, Prefecture } from '@/services'
 import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
 const props = defineProps<{ active: boolean }>()
 const emit = defineEmits<{
-  districtChange: [district: District | null]
+  areaChange: [area: District | Prefecture | null]
   pipesetReady: [id: string]
 }>()
 const id = useId()
@@ -35,7 +37,21 @@ const options = computed(() => [
   { value: '', label: t('components.PipeSetGenerator.selectSet'), disabled: true },
   ...sets.value.map(({ id, name }) => ({ value: id, label: name })),
 ])
-const district = shallowRef<District | null>(null)
+const areaTypes = ['district', 'prefecture'] as const
+const areaType = ref<(typeof areaTypes)[number]>('district')
+const area = shallowRef<District | Prefecture | null>(null)
+const prefectureSearch = ref('')
+const {
+  prefectures,
+  loading: loadingPrefectures,
+  unavailable: prefecturesUnavailable,
+} = usePrefecturesQuery(toRef(() => props.active))
+const normalizeQuery = (query: string) => query.normalize('NFKC').replace(/\s+/gu, '')
+const prefectureResults = computed(() => {
+  const query = normalizeQuery(prefectureSearch.value)
+
+  return prefectures.value.filter(({ label }) => normalizeQuery(label).includes(query))
+})
 const selectedSet = computed(() => sets.value.find((set) => set.id === selectedId.value))
 const saveDisabled = computed(
   () => busy.value || loading.value || failed.value || !sets.value.length,
@@ -63,25 +79,32 @@ const details = (attribute: AttributeDefinition) => {
   }
 }
 
-const setDistrict = (next: District | null) => {
-  if (district.value === next) return
+const setArea = (next: District | Prefecture | null) => {
+  if (area.value === next) return
 
-  district.value = next
-  emit('districtChange', next)
+  area.value = next
+  emit('areaChange', next)
 }
+
+watch(areaType, () => {
+  setArea(null)
+  prefectureSearch.value = ''
+})
 
 const save = () => {
   if (saveDisabled.value) return
 
   submitAttempted.value = true
   nameTouched.value = true
-  if (nameError.value || !selectedSet.value || !district.value) return
+  if (nameError.value || !selectedSet.value || !area.value) return
 
   submitAttempted.value = false
   void submit({
     name: name.value.trim(),
     attributeSetId: selectedSet.value.id,
-    districtId: district.value.code,
+    ...(areaType.value === 'district'
+      ? { districtId: area.value.code }
+      : { prefectureId: area.value.code }),
   })
 }
 </script>
@@ -137,11 +160,33 @@ const save = () => {
       </dl>
     </section>
 
+    <fieldset class="area-types" :disabled="busy">
+      <legend>{{ t('components.PipeSetGenerator.areaType') }}</legend>
+      <label v-for="type in areaTypes" :key="type">
+        <input v-model="areaType" type="radio" :name="`${id}-area-type`" :value="type" />
+        {{ t(`components.PipeSetGenerator.${type}`) }}
+      </label>
+    </fieldset>
+
     <DistrictSearch
+      v-if="areaType === 'district'"
       :disabled="busy"
-      :selection-required="submitAttempted && !district"
-      @select="setDistrict"
-      @clear-selection="setDistrict(null)"
+      :selection-required="submitAttempted && !area"
+      @select="setArea"
+      @clear-selection="setArea(null)"
+    />
+    <AreaSearch
+      v-else
+      mode="prefecture"
+      :results="prefectureResults"
+      :loading="loadingPrefectures"
+      :unavailable="prefecturesUnavailable"
+      :disabled="busy"
+      :selection-required="submitAttempted && !area"
+      @search="prefectureSearch = $event"
+      @clear-search="prefectureSearch = ''"
+      @select="setArea"
+      @clear-selection="setArea(null)"
     />
 
     <button class="save" type="submit" :disabled="saveDisabled">
@@ -157,6 +202,32 @@ const save = () => {
   gap: var(--space-md);
   padding: var(--space-md);
   font: var(--font-body-sm);
+}
+
+.area-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-md);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.area-types legend {
+  padding: 0;
+}
+
+.area-types label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.area-types input {
+  margin: 0;
+  accent-color: var(--color-primary);
 }
 
 .set-picker {

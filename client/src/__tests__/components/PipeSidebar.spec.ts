@@ -54,6 +54,7 @@ describe('PipeSidebar', () => {
     const request = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json(saved, { status: 201 }))
       .mockResolvedValueOnce(Response.json([saved]))
     vi.stubGlobal('fetch', request)

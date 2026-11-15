@@ -27,6 +27,11 @@ describe('PipeSetGenerator', () => {
       props: { active: false },
     })
 
+    expect(wrapper.get<HTMLInputElement>('input[value="district"]').element.checked).toBe(true)
+    expect(wrapper.get('[role="combobox"]').attributes('placeholder')).toBe(
+      'Prefecture, city, or ward',
+    )
+    expect(wrapper.find('input[placeholder="Prefecture name"]').exists()).toBe(false)
     expect(wrapper.get('input[required]').element.value).toBe('')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.get('select').element.value).toBe('')
@@ -101,6 +106,7 @@ describe('PipeSetGenerator', () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
+      .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json([nextSet, set]))
     vi.stubGlobal('fetch', fetch)
     const wrapper = mount(PipeSetGenerator, {
@@ -156,7 +162,7 @@ describe('PipeSetGenerator', () => {
       'Select an attribute set.',
       'Select a district.',
     ])
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(2)
 
     const select = wrapper.get('select')
     await select.setValue(set.id)
@@ -170,6 +176,7 @@ describe('PipeSetGenerator', () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
+      .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json([district]))
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
@@ -192,12 +199,12 @@ describe('PipeSetGenerator', () => {
     expect(save.element.disabled).toBe(false)
     await wrapper.get('form').trigger('submit')
     expect(wrapper.get('[role="alert"]').text()).toBe('Enter a pipe set name.')
-    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenCalledTimes(3)
 
     await name.setValue('管'.repeat(256))
     expect(wrapper.get('[role="alert"]').text()).toBe('Use 255 characters or fewer.')
     await wrapper.get('form').trigger('submit')
-    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenCalledTimes(3)
 
     await name.setValue('  Demo mains  ')
     expect(save.element.disabled).toBe(false)
@@ -225,8 +232,83 @@ describe('PipeSetGenerator', () => {
     expect(save.element.disabled).toBe(false)
     await wrapper.get('form').trigger('submit')
     expect(wrapper.get('[role="alert"]').text()).toBe('Select a district.')
-    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(fetch).toHaveBeenCalledTimes(4)
 
+    wrapper.unmount()
+  })
+
+  it('should preload prefectures, filter locally, and submit only an explicitly chosen prefecture', async () => {
+    const prefecture = { code: '01', label: '北海道', bounds: [139, 41, 146, 46] }
+    const other = { code: '02', label: 'テスト県', bounds: [140, 40, 142, 42] }
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json([set]))
+      .mockResolvedValueOnce(Response.json([prefecture, other]))
+      .mockResolvedValueOnce(Response.json({ id: set.id }, { status: 202 }))
+    vi.stubGlobal('fetch', fetch)
+    const wrapper = mount(PipeSetGenerator, {
+      global: { plugins: createTestPlugins() },
+      props: { active: false },
+    })
+
+    expect(fetch).not.toHaveBeenCalled()
+    await wrapper.setProps({ active: true })
+    await flushPromises()
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/prefectures/',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    expect(wrapper.find('input[placeholder="Prefecture name"]').exists()).toBe(false)
+
+    await wrapper.get('input[value="prefecture"]').setValue()
+    const search = wrapper.get('input[role="combobox"]')
+    await search.trigger('focus')
+    expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual([
+      prefecture.label,
+      other.label,
+    ])
+    await search.setValue('該当なし')
+    expect(wrapper.get('[role="status"]').text()).toBe('No matching prefectures')
+    await search.setValue('　ﾃ ｽ ﾄ　')
+    expect(wrapper.get('[role="option"]').text()).toBe(other.label)
+    await search.setValue('北 海')
+    expect(wrapper.get('[role="option"]').text()).toBe(prefecture.label)
+
+    await wrapper.get('input[required]').setValue('Wide area')
+    await wrapper.get('select').setValue(set.id)
+    await search.trigger('keydown', { key: 'Enter' })
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.get('[role="alert"]').text()).toBe('Select a prefecture.')
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(wrapper.emitted('areaChange')).toBeUndefined()
+
+    await search.trigger('keydown', { key: 'ArrowDown' })
+    await search.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('areaChange')).toEqual([[prefecture]])
+
+    await wrapper.get('input[value="district"]').setValue()
+    expect(wrapper.emitted('areaChange')).toEqual([[prefecture], [null]])
+    await wrapper.get('input[value="prefecture"]').setValue()
+    const newSearch = wrapper.get('input[role="combobox"]')
+    expect(newSearch.element.value).toBe('')
+    await newSearch.trigger('focus')
+    await wrapper.get('[role="option"]:first-child').trigger('click')
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(fetch).toHaveBeenLastCalledWith(
+      '/api/pipesets/',
+      expect.objectContaining({
+        body: JSON.stringify({
+          name: 'Wide area',
+          prefecture_id: '01',
+          attribute_set_id: set.id,
+        }),
+      }),
+    )
+    expect(wrapper.get('fieldset').element.disabled).toBe(true)
+    expect(newSearch.element.disabled).toBe(true)
     wrapper.unmount()
   })
 })

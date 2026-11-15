@@ -13,6 +13,7 @@ class PipeSet(models.Model):
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     district_id = models.CharField(max_length=5, blank=True)
+    prefecture_id = models.CharField(max_length=2, blank=True)
     attribute_set = models.ForeignKey(
         "AttributeSet", on_delete=models.PROTECT, null=True
     )

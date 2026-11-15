@@ -1,12 +1,22 @@
 {
   "components": {
-    "DistrictSearch": {
-      "label": "行政区域を検索",
-      "placeholder": "都道府県・市区町村名",
-      "selectionRequired": "行政区域を選択してください。",
-      "loading": "検索中…",
-      "empty": "一致する行政区域がありません",
-      "unavailable": "行政区域を検索できません"
+    "AreaSearch": {
+      "district": {
+        "label": "行政区域を検索",
+        "placeholder": "都道府県・市区町村名",
+        "selectionRequired": "行政区域を選択してください。",
+        "loading": "検索中…",
+        "empty": "一致する行政区域がありません",
+        "unavailable": "行政区域を検索できません"
+      },
+      "prefecture": {
+        "label": "都道府県を検索",
+        "placeholder": "都道府県名",
+        "selectionRequired": "都道府県を選択してください。",
+        "loading": "都道府県を読み込み中…",
+        "empty": "一致する都道府県がありません",
+        "unavailable": "都道府県を読み込めません"
+      }
     },
     "PipeSidebar": {
       "label": "管路ツール",
@@ -22,6 +32,9 @@
       "loadFailed": "管路セットを読み込めませんでした。"
     },
     "PipeSetGenerator": {
+      "areaType": "対象区域の種類",
+      "district": "市区町村",
+      "prefecture": "都道府県",
       "name": "管路セット名",
       "nameRequired": "管路セット名を入力してください。",
       "nameTooLong": "255文字以内で入力してください。",

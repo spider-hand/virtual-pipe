@@ -24,27 +24,16 @@ import {
     PrefectureSearchErrorToJSON,
 } from '../models/PrefectureSearchError';
 
-export interface SearchPrefecturesRequest {
-    /**
-     * Japanese place name
-     */
-    q?: string;
-}
-
 /**
  * 
  */
 export class PrefecturesApi extends runtime.BaseAPI {
 
     /**
-     * Creates request options for searchPrefectures without sending the request
+     * Creates request options for listPrefectures without sending the request
      */
-    async searchPrefecturesRequestOpts(requestParameters: SearchPrefecturesRequest): Promise<runtime.RequestOpts> {
+    async listPrefecturesRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
-
-        if (requestParameters['q'] != null) {
-            queryParameters['q'] = requestParameters['q'];
-        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -61,8 +50,8 @@ export class PrefecturesApi extends runtime.BaseAPI {
 
     /**
      */
-    async searchPrefecturesRaw(requestParameters: SearchPrefecturesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Prefecture>>> {
-        const requestOptions = await this.searchPrefecturesRequestOpts(requestParameters);
+    async listPrefecturesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Prefecture>>> {
+        const requestOptions = await this.listPrefecturesRequestOpts();
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PrefectureFromJSON));
@@ -70,8 +59,8 @@ export class PrefecturesApi extends runtime.BaseAPI {
 
     /**
      */
-    async searchPrefectures(requestParameters: SearchPrefecturesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Prefecture>> {
-        const response = await this.searchPrefecturesRaw(requestParameters, initOverrides);
+    async listPrefectures(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Prefecture>> {
+        const response = await this.listPrefecturesRaw(initOverrides);
         return await response.value();
     }
 
