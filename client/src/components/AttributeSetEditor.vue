@@ -8,7 +8,7 @@ import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import type { AttributeDefinition } from '@/services'
-import { getSetNameError } from '@/validation/setName'
+import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
 const types = ['string', 'integer', 'decimal', 'boolean', 'date', 'id'] as const

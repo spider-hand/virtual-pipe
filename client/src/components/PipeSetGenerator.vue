@@ -8,7 +8,7 @@ import SelectField from '@/components/SelectField.vue'
 import { useAttributeSetsQuery } from '@/composables/useAttributeSetsQuery'
 import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import type { AttributeDefinition, District } from '@/services'
-import { getSetNameError } from '@/validation/setName'
+import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
 const props = defineProps<{ active: boolean }>()
