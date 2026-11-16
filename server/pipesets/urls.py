@@ -1,15 +1,13 @@
 from django.urls import path
 
-from pipesets.views import (
+from pipesets.views.district import districts, prefectures
+from pipesets.views.pipeset import (
     attribute_sets,
-    districts,
     download_pipeset,
     get_pipeset_status,
     pipesets,
-    prefectures,
-    road_data,
-    road_data_setups,
 )
+from pipesets.views.road import road_data, road_data_setups
 
 urlpatterns = [
     path("road-data/", road_data, name="road-data"),

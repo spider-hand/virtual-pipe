@@ -1,10 +1,9 @@
 import logging
-import unicodedata
 from uuid import UUID
 
 import duckdb
 from django.contrib.gis.db.models import Extent
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import Case, F, When
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
@@ -18,112 +17,25 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from pipesets.district_catalog import (
-    get_district,
-    get_prefecture,
-    list_prefectures,
-    search_districts,
-)
+from pipesets.district_catalog import get_district, get_prefecture
 from pipesets.exports import (
     EXPORT_CONTENT_TYPES,
     GEOMETRY_COLUMN,
     PipeSetExportResponse,
 )
-from pipesets.models import AttributeSet, PipeSet, RoadDataSetup
-from pipesets.road_data import REGIONS, get_coverage, has_cached_extract
-from pipesets.serializers import (
+from pipesets.models.pipeset import AttributeSet, PipeSet
+from pipesets.serializers.pipeset import (
     AttributeSetCreateSerializer,
     AttributeSetSerializer,
-    DistrictSearchErrorSerializer,
-    DistrictSerializer,
     PipeSetAcceptedSerializer,
     PipeSetCreateErrorSerializer,
     PipeSetCreateSerializer,
     PipeSetStatusSerializer,
     PipeSetSummarySerializer,
-    PrefectureSearchErrorSerializer,
-    PrefectureSerializer,
-    RoadDataSerializer,
-    RoadDataSetupRequestSerializer,
-    RoadDataSetupSerializer,
 )
-from pipesets.tasks import generate_pipeset, prepare_road_data
+from pipesets.tasks.pipeset import generate_pipeset
 
 logger = logging.getLogger(__name__)
-
-
-@extend_schema(
-    operation_id="getRoadData", tags=["road-data"], responses=RoadDataSerializer
-)
-@api_view(["GET"])
-@authentication_classes([])
-@permission_classes([AllowAny])
-def road_data(request):
-    setup = RoadDataSetup.objects.order_by("-pk").first()
-    return Response(
-        RoadDataSerializer(
-            {
-                "regions": REGIONS,
-                "cached_regions": [
-                    region for region in REGIONS if has_cached_extract(region)
-                ],
-                "setup": setup,
-                **get_coverage(),
-            }
-        ).data
-    )
-
-
-@extend_schema(
-    operation_id="createRoadDataSetup",
-    tags=["road-data"],
-    request=RoadDataSetupRequestSerializer,
-    responses={
-        202: RoadDataSetupSerializer,
-        400: OpenApiResponse(description="Invalid region."),
-        409: OpenApiResponse(
-            description="A setup is already active or the region is already active."
-        ),
-        503: OpenApiResponse(description="The setup queue is unavailable."),
-    },
-)
-@api_view(["POST"])
-@authentication_classes([])
-@permission_classes([AllowAny])
-def road_data_setups(request):
-    serializer = RoadDataSetupRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    region = serializer.validated_data["region"]
-    if region == get_coverage()["active_region"]:
-        return Response(
-            {"detail": "The selected region is already active."}, status=409
-        )
-
-    try:
-        with transaction.atomic(durable=True):
-            setup = RoadDataSetup.objects.create(region=region)
-    except IntegrityError as exc:
-        if (
-            getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
-            != "only_one_active_road_data_setup"
-        ):
-            raise
-
-        return Response({"detail": "A setup is already active."}, status=409)
-
-    try:
-        prepare_road_data.apply_async(args=[setup.pk], retry=False)
-    except OperationalError:
-        logger.exception("Could not queue road data setup %s", setup.pk)
-        RoadDataSetup.objects.filter(
-            pk=setup.pk, status=RoadDataSetup.Status.QUEUED
-        ).update(
-            status=RoadDataSetup.Status.FAILED, failure=RoadDataSetup.Failure.QUEUE
-        )
-        return Response({"detail": "The setup queue is unavailable."}, status=503)
-
-    return Response(RoadDataSetupSerializer(setup).data, status=202)
 
 
 @extend_schema(
@@ -293,58 +205,6 @@ def download_pipeset(request, id):
         return Response({"detail": "The geometry column is reserved."}, status=409)
 
     return PipeSetExportResponse(pipeset, definitions, file_format)
-
-
-@extend_schema(
-    operation_id="searchDistricts",
-    tags=["districts"],
-    parameters=[
-        OpenApiParameter("q", str, description="Japanese or romanized place name")
-    ],
-    responses={200: DistrictSerializer(many=True), 503: DistrictSearchErrorSerializer},
-)
-@api_view(["GET"])
-@authentication_classes([])
-@permission_classes([AllowAny])
-def districts(request):
-    query = "".join(
-        unicodedata.normalize("NFKC", request.query_params.get("q", "")).split()
-    )
-    if not query:
-        return Response([])
-
-    try:
-        matches = search_districts(query)
-    except duckdb.Error:
-        logger.exception("Could not query the district catalog")
-    else:
-        if matches is not None:
-            return Response(DistrictSerializer(matches, many=True).data)
-
-    return Response({"detail": "District search is unavailable."}, status=503)
-
-
-@extend_schema(
-    operation_id="listPrefectures",
-    tags=["prefectures"],
-    responses={
-        200: PrefectureSerializer(many=True),
-        503: PrefectureSearchErrorSerializer,
-    },
-)
-@api_view(["GET"])
-@authentication_classes([])
-@permission_classes([AllowAny])
-def prefectures(request):
-    try:
-        entries = list_prefectures()
-    except duckdb.Error:
-        logger.exception("Could not query the prefecture catalog")
-    else:
-        if entries is not None:
-            return Response(PrefectureSerializer(entries, many=True).data)
-
-    return Response({"detail": "Prefecture search is unavailable."}, status=503)
 
 
 @extend_schema(

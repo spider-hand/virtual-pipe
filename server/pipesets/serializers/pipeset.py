@@ -6,58 +6,7 @@ from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_fiel
 from rest_framework import serializers
 
 from pipesets.exports import GEOMETRY_COLUMN
-from pipesets.models import AttributeSet, PipeSet, RoadDataSetup
-from pipesets.road_data import REGIONS
-
-
-class RoadDataSetupRequestSerializer(serializers.Serializer):
-    region = serializers.ChoiceField(choices=REGIONS)
-
-
-class RoadDataSetupSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    region = serializers.ChoiceField(choices=REGIONS)
-    status = serializers.ChoiceField(choices=RoadDataSetup.Status.choices)
-    failure = serializers.ChoiceField(
-        choices=RoadDataSetup.Failure.choices, allow_null=True
-    )
-
-
-class RoadDataSerializer(serializers.Serializer):
-    regions = serializers.ListField(child=serializers.ChoiceField(choices=REGIONS))
-    cached_regions = serializers.ListField(
-        child=serializers.ChoiceField(choices=REGIONS)
-    )
-    has_roads = serializers.BooleanField()
-    active_region = serializers.ChoiceField(choices=REGIONS, allow_null=True)
-    setup = RoadDataSetupSerializer(allow_null=True)
-
-
-class AreaSearchResultSerializer(serializers.Serializer):
-    code = serializers.CharField()
-    label = serializers.CharField()
-    label_en = serializers.CharField(
-        allow_null=True, help_text="Romanized place name when available."
-    )
-    bounds = serializers.ListField(
-        child=serializers.FloatField(), min_length=4, max_length=4
-    )
-
-
-class DistrictSerializer(AreaSearchResultSerializer):
-    pass
-
-
-class PrefectureSerializer(AreaSearchResultSerializer):
-    pass
-
-
-class DistrictSearchErrorSerializer(serializers.Serializer):
-    detail = serializers.CharField()
-
-
-class PrefectureSearchErrorSerializer(DistrictSearchErrorSerializer):
-    pass
+from pipesets.models.pipeset import AttributeSet, PipeSet
 
 
 class TextField(serializers.CharField):

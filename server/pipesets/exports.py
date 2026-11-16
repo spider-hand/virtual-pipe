@@ -9,7 +9,7 @@ import duckdb
 from django.contrib.gis.db.models.functions import AsWKT
 from django.http import FileResponse
 
-from pipesets.models import Pipe
+from pipesets.models.pipeset import Pipe
 
 GEOMETRY_COLUMN = "geometry"
 EXPORT_CONTENT_TYPES = {

@@ -7,8 +7,8 @@ from django.db import connection
 from django.db.models import ProtectedError
 from kombu.exceptions import OperationalError
 
-from pipesets.models import AttributeSet, Pipe, PipeSet
-from pipesets.tasks import generate_attribute, generate_pipeset
+from pipesets.models.pipeset import AttributeSet, Pipe, PipeSet
+from pipesets.tasks.pipeset import generate_attribute, generate_pipeset
 
 DISTRICT_ID = "01234"
 DISTRICT_LABEL = "Sample Municipality"
@@ -98,7 +98,7 @@ def test_create_pipeset_commits_the_pending_set_before_publishing(
         assert pipe_set.status == PipeSet.Status.PENDING
         published.append(args[0])
 
-    monkeypatch.setattr("pipesets.views.generate_pipeset.apply_async", publish)
+    monkeypatch.setattr("pipesets.views.pipeset.generate_pipeset.apply_async", publish)
 
     response = client.post(
         "/api/pipesets/",
@@ -262,7 +262,9 @@ def test_create_pipeset_records_failure_if_the_broker_is_unavailable(
     def unavailable(**kwargs):
         raise OperationalError("Broker is down")
 
-    monkeypatch.setattr("pipesets.views.generate_pipeset.apply_async", unavailable)
+    monkeypatch.setattr(
+        "pipesets.views.pipeset.generate_pipeset.apply_async", unavailable
+    )
 
     response = client.post(
         "/api/pipesets/",
@@ -359,7 +361,7 @@ def test_generation_rolls_back_earlier_batches_if_a_later_insert_fails(
 ):
     roads(1, "LINESTRING(1 1, 2 1)")
     roads(2, "LINESTRING(1 2, 2 2)")
-    monkeypatch.setattr("pipesets.tasks.BATCH_SIZE", 1)
+    monkeypatch.setattr("pipesets.tasks.pipeset.BATCH_SIZE", 1)
     bulk_create = Pipe.objects.bulk_create
 
     def insert(pipes):
@@ -393,8 +395,10 @@ def test_generation_rolls_back_earlier_batches_if_a_later_insert_fails(
 def test_generate_attribute_respects_the_rule_and_includes_upper_bounds(
     rule, expected, monkeypatch
 ):
-    monkeypatch.setattr("pipesets.tasks.random.randint", lambda lower, upper: upper)
-    monkeypatch.setattr("pipesets.tasks.random.getrandbits", lambda width: 1)
+    monkeypatch.setattr(
+        "pipesets.tasks.pipeset.random.randint", lambda lower, upper: upper
+    )
+    monkeypatch.setattr("pipesets.tasks.pipeset.random.getrandbits", lambda width: 1)
 
     result = generate_attribute(rule, 2)
 

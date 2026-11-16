@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from pipesets.models import PipeSet
+from pipesets.models.pipeset import PipeSet
 
 pytestmark = pytest.mark.django_db
 

@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from pipesets.models import AttributeSet
+from pipesets.models.pipeset import AttributeSet
 
 pytestmark = pytest.mark.django_db
 

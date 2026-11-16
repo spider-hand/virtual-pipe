@@ -10,7 +10,7 @@ import pytest
 from django.contrib.gis.geos import LineString
 from django.urls import reverse
 
-from pipesets.models import AttributeSet, Pipe, PipeSet
+from pipesets.models.pipeset import AttributeSet, Pipe, PipeSet
 
 pytestmark = pytest.mark.django_db
 GEOMETRY = LineString((139, 35), (140, 36), srid=4326)

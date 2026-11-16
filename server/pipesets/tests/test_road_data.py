@@ -6,8 +6,8 @@ from django.db import IntegrityError, connection
 from kombu.exceptions import OperationalError
 
 from pipesets import road_data
-from pipesets.models import RoadDataSetup
-from pipesets.tasks import prepare_road_data
+from pipesets.models.road import RoadDataSetup
+from pipesets.tasks.road import prepare_road_data
 
 
 def test_download_preserves_cached_extract_when_checksum_does_not_match(
@@ -147,8 +147,8 @@ def test_download_failure_prevents_import(client, monkeypatch, tmp_path):
     def unexpected_import(_region):
         pytest.fail("Import should be skipped after download fails")
 
-    monkeypatch.setattr("pipesets.tasks.download_roads", download_fails)
-    monkeypatch.setattr("pipesets.tasks.import_roads", unexpected_import)
+    monkeypatch.setattr("pipesets.tasks.road.download_roads", download_fails)
+    monkeypatch.setattr("pipesets.tasks.road.import_roads", unexpected_import)
 
     prepare_road_data.run(setup.pk)
 
@@ -212,8 +212,8 @@ def test_setup_downloads_only_when_the_extract_is_missing_or_empty(
         assert region == "kanto"
         assert path.read_bytes() == b"extract"
 
-    monkeypatch.setattr("pipesets.tasks.download_roads", download)
-    monkeypatch.setattr("pipesets.tasks.import_roads", import_extract)
+    monkeypatch.setattr("pipesets.tasks.road.download_roads", download)
+    monkeypatch.setattr("pipesets.tasks.road.import_roads", import_extract)
     prepare_road_data.run(setup.pk)
 
     setup.refresh_from_db()

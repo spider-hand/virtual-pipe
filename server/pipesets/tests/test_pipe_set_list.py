@@ -5,7 +5,7 @@ import pytest
 from django.contrib.gis.geos import LineString
 from django.utils import timezone
 
-from pipesets.models import AttributeSet, Pipe, PipeSet
+from pipesets.models.pipeset import AttributeSet, Pipe, PipeSet
 
 pytestmark = pytest.mark.django_db
 
