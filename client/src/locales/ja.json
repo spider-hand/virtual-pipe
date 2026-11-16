@@ -1,5 +1,30 @@
 {
   "components": {
+    "Map": {
+      "roadDataRegion": "道路データの地域",
+      "unknownRegion": "不明",
+      "manageRoadData": "道路データを管理"
+    },
+    "RoadDataSetup": {
+      "title": "道路データ",
+      "back": "地図に戻る",
+      "coverage": "対象範囲",
+      "activeRegion": "有効な地域は不明",
+      "region": "地域",
+      "selectRegion": "地域を選択",
+      "download": "ダウンロードして準備",
+      "regions": {
+        "japan": "日本全国",
+        "chubu": "中部",
+        "chugoku": "中国",
+        "hokkaido": "北海道",
+        "kansai": "関西",
+        "kanto": "関東",
+        "kyushu": "九州",
+        "shikoku": "四国",
+        "tohoku": "東北"
+      }
+    },
     "AreaSearch": {
       "district": {
         "label": "行政区域を検索",

@@ -8,6 +8,8 @@ import {
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 
 import PipeSetSelector from '@/components/PipeSetSelector.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
@@ -15,6 +17,9 @@ import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import type { District, Prefecture } from '@/services'
 
 defineOptions({ name: 'PipeMap' })
+
+const { t } = useI18n()
+const topControls = useTemplateRef<HTMLDivElement>('topControls')
 
 const osmAttribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -45,24 +50,22 @@ const fitMapBounds = (bounds: [number, number, number, number]) => {
   const layout = container.value?.parentElement
   const sidebar = layout?.querySelector('aside')?.getBoundingClientRect()
   const sidebarRight = sidebar?.right ?? 0
-  const controlsBottom = Math.max(
-    sidebar?.bottom ?? 0,
-    layout?.querySelector('.selector')?.getBoundingClientRect().bottom ?? 0,
-  )
+  const topControlsBottom = topControls.value?.getBoundingClientRect().bottom ?? 0
   const width = container.value?.clientWidth ?? 0
   const height = container.value?.clientHeight ?? 0
+  const fitsBesideSidebar = width - sidebarRight >= 360
+  const controlsBottom = fitsBesideSidebar
+    ? topControlsBottom
+    : Math.max(sidebar?.bottom ?? 0, topControlsBottom)
+  const top = height - controlsBottom >= 112 ? Math.max(48, controlsBottom + 24) : 48
 
-  if (width - sidebarRight >= 360) {
-    map.fitBounds(bounds, {
-      padding: { top: 48, right: 48, bottom: 48, left: sidebarRight + 48 },
-    })
-  } else {
-    const padding =
-      height - controlsBottom >= 150
-        ? { top: controlsBottom + 24, right: 48, bottom: 48, left: 48 }
-        : 48
-    map.fitBounds(bounds, { padding })
-  }
+  map.fitBounds(bounds, {
+    padding: fitsBesideSidebar
+      ? { top, right: 48, bottom: 48, left: sidebarRight + 48 }
+      : top > 48
+        ? { top, right: 48, bottom: 48, left: 48 }
+        : 48,
+  })
 }
 
 const showPipeSet = () => {
@@ -200,13 +203,24 @@ onUnmounted(() => map?.remove())
   <div class="map-layout">
     <div ref="container" class="map-canvas"></div>
     <div class="map-tools">
-      <PipeSetSelector
-        v-model="selectedId"
-        class="selector"
-        :sets="sets"
-        :loading="loading"
-        :failed="failed"
-      />
+      <div ref="topControls" class="top-controls">
+        <section class="road-data" aria-labelledby="road-data-heading">
+          <div class="road-data-status">
+            <h2 id="road-data-heading">{{ t('components.Map.roadDataRegion') }}</h2>
+            <p>{{ t('components.Map.unknownRegion') }}</p>
+          </div>
+          <RouterLink :to="{ name: 'setup' }">
+            {{ t('components.Map.manageRoadData') }}
+          </RouterLink>
+        </section>
+        <PipeSetSelector
+          v-model="selectedId"
+          class="selector"
+          :sets="sets"
+          :loading="loading"
+          :failed="failed"
+        />
+      </div>
       <PipeSidebar
         v-model:open="sidebarOpen"
         class="pipe-tools"
@@ -243,9 +257,53 @@ onUnmounted(() => map?.remove())
   pointer-events: none;
 }
 
-.selector {
+.top-controls {
   grid-area: 1 / 2;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.top-controls > * {
   pointer-events: auto;
+}
+
+.road-data {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-xxs) var(--space-sm);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+.road-data-status h2 {
+  margin: 0;
+  color: var(--color-muted);
+  font: var(--font-caption);
+}
+
+.road-data-status p {
+  margin: 0;
+  font: var(--font-body-md);
+}
+
+.road-data a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: flex-end;
+  color: inherit;
+  font: var(--font-nav-link);
+  text-underline-offset: 3px;
+}
+
+.road-data a:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
 }
 
 .pipe-tools {
@@ -258,7 +316,7 @@ onUnmounted(() => map?.remove())
     grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .selector {
+  .top-controls {
     grid-area: 1 / 1;
     justify-self: end;
     width: min(100%, 264px);

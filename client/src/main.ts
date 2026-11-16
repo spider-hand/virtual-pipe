@@ -4,9 +4,14 @@ import { createApp } from 'vue'
 import App from '@/App.vue'
 import { createAppI18n } from '@/i18n'
 import { createQueryClient } from '@/queryClient'
+import { router } from '@/router'
 import '@/styles/tokens.css'
 
 const i18n = createAppI18n()
 document.documentElement.lang = i18n.global.locale.value
 
-createApp(App).use(i18n).use(VueQueryPlugin, { queryClient: createQueryClient() }).mount('#app')
+createApp(App)
+  .use(i18n)
+  .use(router)
+  .use(VueQueryPlugin, { queryClient: createQueryClient() })
+  .mount('#app')

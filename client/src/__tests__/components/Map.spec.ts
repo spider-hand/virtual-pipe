@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import type { MapOptions } from 'maplibre-gl'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -40,6 +40,9 @@ vi.mock('maplibre-gl', () => ({
   setWorkerUrl: vi.fn<() => void>(),
 }))
 
+const mountMap = () =>
+  mount(Map, { global: { plugins: createTestPlugins(), stubs: { RouterLink: RouterLinkStub } } })
+
 describe('Map', () => {
   afterEach(() => {
     vi.useRealTimers()
@@ -65,7 +68,7 @@ describe('Map', () => {
         .mockResolvedValueOnce(Response.json([result]))
       vi.stubGlobal('fetch', fetch)
 
-      const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
+      const wrapper = mountMap()
       const panel = wrapper.get('[role="tabpanel"]:has([role="combobox"])')
       expect(panel.isVisible()).toBe(false)
       await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
@@ -108,7 +111,7 @@ describe('Map', () => {
       'fetch',
       vi.fn<typeof fetch>().mockResolvedValue(Response.json([newest, oldest, legacy])),
     )
-    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
+    const wrapper = mountMap()
     await flushPromises()
     const picker = wrapper.get('.selector select')
 
@@ -151,7 +154,7 @@ describe('Map', () => {
       .mockResolvedValueOnce(Response.json([newest, { ...oldest, id }]))
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
+    const wrapper = mountMap()
     const style = createMap.mock.calls[0]![0].style
     expect(style).toMatchObject({ sources: { basemap: { type: 'raster' } } })
     expect(style && typeof style === 'object' && style.sources).not.toHaveProperty('pipes')
@@ -214,7 +217,7 @@ describe('Map', () => {
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(Map, { global: { plugins: createTestPlugins() } })
+    const wrapper = mountMap()
     await flushPromises()
     onLoad.mock.calls[0]![1]()
     const picker = wrapper.get('.selector select')

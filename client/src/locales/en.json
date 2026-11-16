@@ -1,5 +1,30 @@
 {
   "components": {
+    "Map": {
+      "roadDataRegion": "Road data region",
+      "unknownRegion": "Unknown",
+      "manageRoadData": "Manage road data"
+    },
+    "RoadDataSetup": {
+      "title": "Road data",
+      "back": "Back to map",
+      "coverage": "Coverage",
+      "activeRegion": "Active region unknown",
+      "region": "Region",
+      "selectRegion": "Select a region",
+      "download": "Download and prepare",
+      "regions": {
+        "japan": "All Japan",
+        "chubu": "Chubu",
+        "chugoku": "Chugoku",
+        "hokkaido": "Hokkaido",
+        "kansai": "Kansai",
+        "kanto": "Kanto",
+        "kyushu": "Kyushu",
+        "shikoku": "Shikoku",
+        "tohoku": "Tohoku"
+      }
+    },
     "AreaSearch": {
       "district": {
         "label": "Search Japanese districts",

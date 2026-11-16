@@ -1,7 +1,17 @@
 <script setup lang="ts">
-import Map from '@/components/Map.vue'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <Map />
+  <RouterView v-slot="{ Component }">
+    <KeepAlive include="PipeMap">
+      <component :is="Component" />
+    </KeepAlive>
+  </RouterView>
 </template>
+
+<style>
+body {
+  margin: 0;
+}
+</style>
