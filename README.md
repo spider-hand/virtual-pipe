@@ -1,64 +1,72 @@
 # Virtual Pipe
 
+![Demo](./assets/demo.gif)
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A local development tool for generating and exporting synthetic pipe data for a district in Japan.
+
+## Motivation
+
+I got the idea from a couple of things I noticed at work:
+- We need realistic data for customer demos, but we can’t use real customer data for compliance reasons.
+- When a new feature or product updates pipe attributes, it often takes a while to prepare real data with those attributes.
+
 ## Local setup
 
-Install GNU Make and Docker with Compose v2.
+- [GNU Make](https://www.gnu.org/software/make/)
+- [Docker with Compose v2](https://docs.docker.com/compose/install/)
 
-Run `make up` from the repository root. Once the services start, visit `http://localhost:5173`. Run `make down` to stop the services. PostgreSQL data and downloaded OSM extracts persist in Docker volumes.
+1. For district search, copy the five `N03-20260101` files (`.shp`, `.shx`, `.dbf`, `.prj`, and `.cpg`) into `data/`. [Nationwide MLIT download](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html)
+2. From the repo root, run `make up`.
+3. Open [localhost:5173](http://localhost:5173).
+4. Open **Manage road data**, pick a region, and select **Download and activate** (or **Activate** if it’s already downloaded). Shikoku is a good first region.
 
-## Import Japan roads
-
-Open **Manage road data** from the map, choose a region, and select **Activate** or **Download and activate**. Activation reuses a downloaded extract when available. Start with Shikoku, the smallest Geofabrik region. The page shows progress and keeps the current coverage active until the import succeeds.
-
-To run the same workflow from the terminal:
+To import road data from the terminal, use the same code for `<region>` in commands. Choose `hokkaido`, `tohoku`, `kanto`, `chubu`, `kansai`, `chugoku`, `shikoku`, `kyushu`, or `japan` for nationwide coverage.
 
 ```sh
-make osm:download REGION=shikoku
-make osm:import REGION=shikoku
+make osm:download REGION=<region>
+make osm:import REGION=<region>
 ```
 
-Both commands require a region. Choose `chubu`, `chugoku`, `hokkaido`, `kansai`, `kanto`, `kyushu`, `shikoku`, or `tohoku`. For nationwide coverage, use `REGION=japan` in both commands. The nationwide PBF alone is about 2.4 GB. Allow additional Docker disk space for import staging and the database. [Geofabrik Japan extracts](https://download.geofabrik.de/asia/japan.html)
+Run `make down` to stop the app.
 
-The download updates the cached extract for that region. The import starts PostgreSQL if needed and uses the cached extract. A successful import replaces `osm.roads` with the selected extract's road centerlines. If the import fails, the previous roads remain available.
+## Local development
 
-Road data is © OpenStreetMap contributors, available under the Open Database License. [OpenStreetMap copyright and license](https://www.openstreetmap.org/copyright)
+- [Node.js 24.12+](https://nodejs.org/en) and [pnpm 10.32.1](https://pnpm.io/)
+- [Python 3.14](https://www.python.org/downloads/) and [uv](https://docs.astral.sh/uv/)
 
-## Checks
-
-Install Node.js 24, pnpm 10.32.1, Python 3.14, uv, and Lefthook for the host-side checks and Git hook.
+From the repo root:
 
 ```sh
 pnpm --dir client install --frozen-lockfile
 uv sync --project server --locked
-lefthook install
 ```
 
-| Task | Client | Server |
-| --- | --- | --- |
-| Format | `make client:format` | `make server:format` |
+| Task             | Client                     | Server                     |
+| ---------------- | -------------------------- | -------------------------- |
+| Format           | `make client:format`       | `make server:format`       |
 | Check formatting | `make client:format:check` | `make server:format:check` |
-| Lint | `make client:lint` | `make server:lint` |
-| Unit tests | `make client:test` | `make server:test` |
+| Lint             | `make client:lint`         | `make server:lint`         |
+| Run tests        | `make client:test`         | `make server:test`         |
 
-Lefthook runs the format checks, lint, and unit tests before each commit. Run `lefthook run pre-commit --all-files` to check both projects on demand.
-
-Server tests run in Docker Compose with GeoDjango's libraries installed. Keep Docker running for the Git hook. The test command starts the Compose database if needed, and the default database user can create Django's test database.
-
-## Update the API client
-
-After changing a Django REST endpoint, run the following commands from the root with Docker running.
+Keep Docker running for server tests and code generation. After changing the API, regenerate the schema and client:
 
 ```sh
 make server:schema
 make client:api:generate
 ```
 
-If an API or model was removed or renamed, clear `client/src/services/` before running `make client:api:generate` to remove obsolete files. Review and commit the generated changes with the endpoint change.
-
-## District search setup
-
-Copy `N03-20260101.shp`, `N03-20260101.shx`, `N03-20260101.dbf`, `N03-20260101.prj`, and `N03-20260101.cpg` from the nationwide [MLIT download](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html) into the root `data/` directory. Run `make up`. The server builds the local catalog for district search and pipe generation. Compose starts Redis and the generation worker as part of the same stack.
-
 ## Credits
 
-District search uses [国土数値情報（行政区域データ）, 2026 edition](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html), from Japan’s Ministry of Land, Infrastructure, Transport and Tourism, under CC BY 4.0.
+- English municipal names were built using data from [JPGovStat](https://github.com/kensukesuzuki04/JPGovStat).
+- Japan road extracts are provided by [Geofabrik](https://download.geofabrik.de/asia/japan.html).
+
+## License
+
+[MIT](LICENSE)
+
+- Road and map data © OpenStreetMap contributors. [Open Database License](https://www.openstreetmap.org/copyright)
+- Japan’s 2026 administrative boundaries come from the Ministry of Land, Infrastructure, Transport and Tourism (MLIT) and are licensed under CC BY 4.0. [Dataset and terms](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html)
+
+Copyright (c) 2026-present, Akinori Hoshina
