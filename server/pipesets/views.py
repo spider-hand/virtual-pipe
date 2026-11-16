@@ -4,7 +4,7 @@ from uuid import UUID
 
 import duckdb
 from django.contrib.gis.db.models import Extent
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Case, F, When
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
@@ -29,7 +29,8 @@ from pipesets.exports import (
     GEOMETRY_COLUMN,
     PipeSetExportResponse,
 )
-from pipesets.models import AttributeSet, PipeSet
+from pipesets.models import AttributeSet, PipeSet, RoadDataSetup
+from pipesets.road_data import REGIONS, get_coverage, has_cached_extract
 from pipesets.serializers import (
     AttributeSetCreateSerializer,
     AttributeSetSerializer,
@@ -42,10 +43,87 @@ from pipesets.serializers import (
     PipeSetSummarySerializer,
     PrefectureSearchErrorSerializer,
     PrefectureSerializer,
+    RoadDataSerializer,
+    RoadDataSetupRequestSerializer,
+    RoadDataSetupSerializer,
 )
-from pipesets.tasks import generate_pipeset
+from pipesets.tasks import generate_pipeset, prepare_road_data
 
 logger = logging.getLogger(__name__)
+
+
+@extend_schema(
+    operation_id="getRoadData", tags=["road-data"], responses=RoadDataSerializer
+)
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def road_data(request):
+    setup = RoadDataSetup.objects.order_by("-pk").first()
+    return Response(
+        RoadDataSerializer(
+            {
+                "regions": REGIONS,
+                "cached_regions": [
+                    region for region in REGIONS if has_cached_extract(region)
+                ],
+                "setup": setup,
+                **get_coverage(),
+            }
+        ).data
+    )
+
+
+@extend_schema(
+    operation_id="createRoadDataSetup",
+    tags=["road-data"],
+    request=RoadDataSetupRequestSerializer,
+    responses={
+        202: RoadDataSetupSerializer,
+        400: OpenApiResponse(description="Invalid region."),
+        409: OpenApiResponse(
+            description="A setup is already active or the region is already active."
+        ),
+        503: OpenApiResponse(description="The setup queue is unavailable."),
+    },
+)
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def road_data_setups(request):
+    serializer = RoadDataSetupRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    region = serializer.validated_data["region"]
+    if region == get_coverage()["active_region"]:
+        return Response(
+            {"detail": "The selected region is already active."}, status=409
+        )
+
+    try:
+        with transaction.atomic(durable=True):
+            setup = RoadDataSetup.objects.create(region=region)
+    except IntegrityError as exc:
+        if (
+            getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
+            != "only_one_active_road_data_setup"
+        ):
+            raise
+
+        return Response({"detail": "A setup is already active."}, status=409)
+
+    try:
+        prepare_road_data.apply_async(args=[setup.pk], retry=False)
+    except OperationalError:
+        logger.exception("Could not queue road data setup %s", setup.pk)
+        RoadDataSetup.objects.filter(
+            pk=setup.pk, status=RoadDataSetup.Status.QUEUED
+        ).update(
+            status=RoadDataSetup.Status.FAILED, failure=RoadDataSetup.Failure.QUEUE
+        )
+        return Response({"detail": "The setup queue is unavailable."}, status=503)
+
+    return Response(RoadDataSetupSerializer(setup).data, status=202)
 
 
 @extend_schema(

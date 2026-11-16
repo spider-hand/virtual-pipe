@@ -15,6 +15,58 @@ class Migration(migrations.Migration):
     dependencies = []
 
     operations = [
+        migrations.CreateModel(
+            name="RoadDataSetup",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("region", models.CharField(max_length=8)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("queued", "Queued"),
+                            ("downloading", "Downloading"),
+                            ("importing", "Importing"),
+                            ("succeeded", "Succeeded"),
+                            ("failed", "Failed"),
+                        ],
+                        default="queued",
+                        max_length=11,
+                    ),
+                ),
+                (
+                    "failure",
+                    models.CharField(
+                        choices=[
+                            ("queue", "Queue"),
+                            ("download", "Download"),
+                            ("import", "Import"),
+                        ],
+                        max_length=8,
+                        null=True,
+                    ),
+                ),
+            ],
+            options={
+                "constraints": [
+                    models.UniqueConstraint(
+                        models.Value(1),
+                        condition=models.Q(
+                            ("status__in", ["queued", "downloading", "importing"])
+                        ),
+                        name="only_one_active_road_data_setup",
+                    )
+                ],
+            },
+        ),
         migrations.RunSQL(
             "CREATE EXTENSION IF NOT EXISTS postgis;", migrations.RunSQL.noop
         ),

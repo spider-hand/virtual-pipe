@@ -236,6 +236,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/PrefectureSearchError'
           description: ''
+  /api/road-data/:
+    get:
+      operationId: getRoadData
+      tags:
+      - road-data
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadData'
+          description: ''
+  /api/road-data/setups/:
+    post:
+      operationId: createRoadDataSetup
+      tags:
+      - road-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoadDataSetupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoadDataSetupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoadDataSetupRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadDataSetup'
+          description: ''
+        '400':
+          description: Invalid region.
+        '409':
+          description: A setup is already active or the region is already active.
+        '503':
+          description: The setup queue is unavailable.
 components:
   schemas:
     AttributeDefinition:
@@ -440,6 +486,9 @@ components:
       - integer
       type: string
       description: '* `integer` - integer'
+    NullEnum:
+      enum:
+      - null
     PipeSetAccepted:
       type: object
       properties:
@@ -564,6 +613,106 @@ components:
           type: string
       required:
       - detail
+    RoadData:
+      type: object
+      properties:
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoadDataRegionEnum'
+        cached_regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoadDataRegionEnum'
+        has_roads:
+          type: boolean
+        active_region:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/RoadDataRegionEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        setup:
+          allOf:
+          - $ref: '#/components/schemas/RoadDataSetup'
+          nullable: true
+      required:
+      - active_region
+      - cached_regions
+      - has_roads
+      - regions
+      - setup
+    RoadDataFailureCodeEnum:
+      enum:
+      - queue
+      - download
+      - import
+      type: string
+      description: |-
+        * `queue` - Queue
+        * `download` - Download
+        * `import` - Import
+    RoadDataRegionEnum:
+      enum:
+      - japan
+      - chubu
+      - chugoku
+      - hokkaido
+      - kansai
+      - kanto
+      - kyushu
+      - shikoku
+      - tohoku
+      type: string
+      description: |-
+        * `japan` - japan
+        * `chubu` - chubu
+        * `chugoku` - chugoku
+        * `hokkaido` - hokkaido
+        * `kansai` - kansai
+        * `kanto` - kanto
+        * `kyushu` - kyushu
+        * `shikoku` - shikoku
+        * `tohoku` - tohoku
+    RoadDataSetup:
+      type: object
+      properties:
+        id:
+          type: integer
+        region:
+          $ref: '#/components/schemas/RoadDataRegionEnum'
+        status:
+          $ref: '#/components/schemas/RoadDataSetupStatusEnum'
+        failure:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/RoadDataFailureCodeEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - failure
+      - id
+      - region
+      - status
+    RoadDataSetupRequest:
+      type: object
+      properties:
+        region:
+          $ref: '#/components/schemas/RoadDataRegionEnum'
+      required:
+      - region
+    RoadDataSetupStatusEnum:
+      enum:
+      - queued
+      - downloading
+      - importing
+      - succeeded
+      - failed
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `downloading` - Downloading
+        * `importing` - Importing
+        * `succeeded` - Succeeded
+        * `failed` - Failed
     StatusEnum:
       enum:
       - ok

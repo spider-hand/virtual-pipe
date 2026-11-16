@@ -128,6 +128,9 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "PipeSetStatusEnum": "pipesets.models.PipeSet.Status",
         "StatusEnum": ["ok"],
+        "RoadDataRegionEnum": "pipesets.road_data.REGIONS",
+        "RoadDataSetupStatusEnum": "pipesets.models.RoadDataSetup.Status",
+        "RoadDataFailureCodeEnum": "pipesets.models.RoadDataSetup.Failure",
     },
 }
 

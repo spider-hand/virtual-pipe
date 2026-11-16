@@ -44,7 +44,10 @@ vi.mock('maplibre-gl', () => ({
 
 const mountMap = () =>
   mount(MapPage, {
-    global: { plugins: createTestPlugins(), stubs: { RouterLink: RouterLinkStub } },
+    global: {
+      plugins: createTestPlugins(),
+      stubs: { RouterLink: RouterLinkStub, RoadDataStatus: true },
+    },
   })
 
 describe('MapPage', () => {
@@ -141,7 +144,20 @@ describe('MapPage', () => {
   })
 
   it('should keep the selected pipe set and map when returning from road data setup', async () => {
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([newest, oldest])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockImplementation(async (url) =>
+        url === '/api/road-data/'
+          ? Response.json({
+              regions: ['shikoku'],
+              has_roads: true,
+              active_region: 'shikoku',
+              cached_regions: ['shikoku'],
+              setup: null,
+            })
+          : Response.json([newest, oldest]),
+      ),
+    )
     await router.push({ name: 'map' })
     const wrapper = mount(App, { global: { plugins: [...createTestPlugins(), router] } })
     await flushPromises()

@@ -1,4 +1,4 @@
-FROM python:3.14-slim-trixie
+FROM python:3.14-slim-trixie AS base
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libgdal36 \
@@ -10,3 +10,10 @@ RUN uv run --no-project --with duckdb==2.0.0 python -c "import duckdb; duckdb.in
 
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
+
+FROM base AS worker
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates osm2pgsql \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM base AS server

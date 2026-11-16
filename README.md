@@ -8,7 +8,9 @@ Run `make up` from the repository root. Once the services start, visit `http://l
 
 ## Import Japan roads
 
-Start with Shikoku, the smallest Geofabrik region.
+Open **Manage road data** from the map, choose a region, and select **Activate** or **Download and activate**. Activation reuses a downloaded extract when available. Start with Shikoku, the smallest Geofabrik region. The page shows progress and keeps the current coverage active until the import succeeds.
+
+To run the same workflow from the terminal:
 
 ```sh
 make osm:download REGION=shikoku

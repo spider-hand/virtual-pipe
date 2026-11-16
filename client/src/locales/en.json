@@ -3,7 +3,21 @@
     "RoadDataStatus": {
       "roadDataRegion": "Road data region",
       "unknownRegion": "Unknown",
-      "manageRoadData": "Manage road data"
+      "manageRoadData": "Manage road data",
+      "noRoads": "No road data",
+      "unavailable": "Unavailable",
+      "loading": "Checking…",
+      "regions": {
+        "japan": "All Japan",
+        "chubu": "Chubu",
+        "chugoku": "Chugoku",
+        "hokkaido": "Hokkaido",
+        "kansai": "Kansai",
+        "kanto": "Kanto",
+        "kyushu": "Kyushu",
+        "shikoku": "Shikoku",
+        "tohoku": "Tohoku"
+      }
     },
     "AreaSearch": {
       "district": {
@@ -136,10 +150,29 @@
       "title": "Road data",
       "back": "Back to map",
       "coverage": "Coverage",
-      "activeRegion": "Active region unknown",
+      "activeRegion": "Active region: {region}",
+      "unknownRegion": "Active region unknown",
+      "noRoads": "No road data is active.",
+      "loadingCoverage": "Checking active coverage…",
+      "coverageError": "Could not check active coverage.",
+      "status": {
+        "submitting": "Starting road data setup…",
+        "queued": "Waiting to prepare roads for {region}…",
+        "downloading": "Downloading roads for {region}…",
+        "importing": "Importing roads for {region}…"
+      },
+      "errors": {
+        "alreadyActive": "A road data setup is already in progress.",
+        "submitFailed": "Could not start setup. Try again.",
+        "queue": "Could not queue setup. Try again.",
+        "download": "Could not download roads for {region}. Try again.",
+        "import": "Could not import roads for {region}. Try again."
+      },
       "region": "Region",
       "selectRegion": "Select a region",
-      "download": "Download and prepare",
+      "download": "Download and activate",
+      "activate": "Activate",
+      "alreadyActive": "Already active",
       "regions": {
         "japan": "All Japan",
         "chubu": "Chubu",

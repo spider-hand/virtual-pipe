@@ -1,15 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 
+import { useRoadDataQuery } from '@/composables/useRoadDataQuery'
+
 const { t } = useI18n()
+const { data, isError } = useRoadDataQuery()
+const regionStatus = computed(() => {
+  if (data.value?.activeRegion) {
+    return t(`components.RoadDataStatus.regions.${data.value.activeRegion}`)
+  }
+
+  if (data.value) {
+    return t(`components.RoadDataStatus.${data.value.hasRoads ? 'unknownRegion' : 'noRoads'}`)
+  }
+
+  return t(`components.RoadDataStatus.${isError.value ? 'unavailable' : 'loading'}`)
+})
 </script>
 
 <template>
   <section class="road-data" aria-labelledby="road-data-heading">
     <div class="road-data-status">
       <h2 id="road-data-heading">{{ t('components.RoadDataStatus.roadDataRegion') }}</h2>
-      <p>{{ t('components.RoadDataStatus.unknownRegion') }}</p>
+      <p role="status">{{ regionStatus }}</p>
     </div>
     <RouterLink :to="{ name: 'setup' }">
       {{ t('components.RoadDataStatus.manageRoadData') }}

@@ -9,7 +9,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection, transaction
 
 from pipesets.district_catalog import get_district, get_prefecture
-from pipesets.models import Pipe, PipeSet
+from pipesets.models import Pipe, PipeSet, RoadDataSetup
+from pipesets.road_data import download_roads, has_cached_extract, import_roads
 
 logger = logging.getLogger(__name__)
 BATCH_SIZE = 1000
@@ -110,6 +111,39 @@ def populate_pipes(pipeset):
         raise GenerationError(
             f"The active OSM import has no roads within this {area_name}."
         )
+
+
+@shared_task(acks_late=True, reject_on_worker_lost=True, ignore_result=True)
+def prepare_road_data(setup_id):
+    status = RoadDataSetup.Status
+    failure = RoadDataSetup.Failure
+    setup = RoadDataSetup.objects.filter(
+        pk=setup_id, status__in=[status.QUEUED, status.DOWNLOADING, status.IMPORTING]
+    ).first()
+    if setup is None:
+        return
+
+    steps = (
+        (status.DOWNLOADING, failure.DOWNLOAD, download_roads),
+        (status.IMPORTING, failure.IMPORT, import_roads),
+    )
+    for phase, reason, operation in steps:
+        try:
+            if phase == status.DOWNLOADING and has_cached_extract(setup.region):
+                continue
+
+            setup.status = phase
+            setup.save(update_fields=["status"])
+            operation(setup.region)
+        except Exception:
+            logger.exception("Road data setup %s failed during %s", setup_id, phase)
+            setup.status = status.FAILED
+            setup.failure = reason
+            setup.save(update_fields=["status", "failure"])
+            return
+
+    setup.status = status.SUCCEEDED
+    setup.save(update_fields=["status"])
 
 
 @shared_task(acks_late=True, reject_on_worker_lost=True, ignore_result=True)

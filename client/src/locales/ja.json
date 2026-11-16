@@ -3,7 +3,21 @@
     "RoadDataStatus": {
       "roadDataRegion": "道路データの地域",
       "unknownRegion": "不明",
-      "manageRoadData": "道路データを管理"
+      "manageRoadData": "道路データを管理",
+      "noRoads": "道路データなし",
+      "unavailable": "取得できませんでした",
+      "loading": "確認中…",
+      "regions": {
+        "japan": "日本全国",
+        "chubu": "中部",
+        "chugoku": "中国",
+        "hokkaido": "北海道",
+        "kansai": "関西",
+        "kanto": "関東",
+        "kyushu": "九州",
+        "shikoku": "四国",
+        "tohoku": "東北"
+      }
     },
     "AreaSearch": {
       "district": {
@@ -136,10 +150,29 @@
       "title": "道路データ",
       "back": "地図に戻る",
       "coverage": "対象範囲",
-      "activeRegion": "有効な地域は不明",
+      "activeRegion": "有効な地域：{region}",
+      "unknownRegion": "有効な地域は不明です",
+      "noRoads": "有効な道路データはありません。",
+      "loadingCoverage": "有効な地域を確認中…",
+      "coverageError": "有効な地域を確認できませんでした。",
+      "status": {
+        "submitting": "道路データの準備を開始中…",
+        "queued": "{region}の道路データの準備待ち…",
+        "downloading": "{region}の道路データをダウンロード中…",
+        "importing": "{region}の道路データをインポート中…"
+      },
+      "errors": {
+        "alreadyActive": "道路データの準備はすでに進行中です。",
+        "submitFailed": "準備を開始できませんでした。もう一度お試しください。",
+        "queue": "準備を予約できませんでした。もう一度お試しください。",
+        "download": "{region}の道路データをダウンロードできませんでした。もう一度お試しください。",
+        "import": "{region}の道路データをインポートできませんでした。もう一度お試しください。"
+      },
       "region": "地域",
       "selectRegion": "地域を選択",
-      "download": "ダウンロードして準備",
+      "download": "ダウンロードしてアクティベート",
+      "activate": "アクティベート",
+      "alreadyActive": "アクティベート済み",
       "regions": {
         "japan": "日本全国",
         "chubu": "中部",

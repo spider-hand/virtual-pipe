@@ -7,9 +7,13 @@ from pipesets.views import (
     get_pipeset_status,
     pipesets,
     prefectures,
+    road_data,
+    road_data_setups,
 )
 
 urlpatterns = [
+    path("road-data/", road_data, name="road-data"),
+    path("road-data/setups/", road_data_setups, name="road-data-setups"),
     path("attribute-sets/", attribute_sets, name="attribute-sets"),
     path("districts/", districts, name="districts"),
     path("prefectures/", prefectures, name="prefectures"),

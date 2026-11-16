@@ -1,29 +1,79 @@
 <script setup lang="ts">
-import { ArrowLeft } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { ArrowLeft, LoaderCircle } from '@lucide/vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 
 import FormField from '@/components/FormField.vue'
 import SelectField from '@/components/SelectField.vue'
+import { useRoadDataQuery } from '@/composables/useRoadDataQuery'
+import type { RoadDataRegionEnum } from '@/services'
 
 const { t } = useI18n()
-const regions = [
-  'japan',
-  'chubu',
-  'chugoku',
-  'hokkaido',
-  'kansai',
-  'kanto',
-  'kyushu',
-  'shikoku',
-  'tohoku',
-] as const
-const region = ref<(typeof regions)[number] | ''>('')
+const { data, isError, submit, submitting, submitError, active } = useRoadDataQuery()
+const region = ref<RoadDataRegionEnum | ''>('')
+const setup = computed(() => data.value?.setup)
+const busy = computed(() => active.value || submitting.value)
+const selectedIsActive = computed(() => region.value === data.value?.activeRegion)
+const canPrepare = computed(() => !!region.value && !busy.value && !selectedIsActive.value)
+const actionLabel = computed(() => {
+  if (selectedIsActive.value) return t('pages.RoadDataSetupPage.alreadyActive')
+
+  return region.value && data.value?.cachedRegions.includes(region.value)
+    ? t('pages.RoadDataSetupPage.activate')
+    : t('pages.RoadDataSetupPage.download')
+})
+const regionLabel = (value: RoadDataRegionEnum) => t(`pages.RoadDataSetupPage.regions.${value}`)
 const options = computed(() => [
   { value: '' as const, label: t('pages.RoadDataSetupPage.selectRegion'), disabled: true },
-  ...regions.map((value) => ({ value, label: t(`pages.RoadDataSetupPage.regions.${value}`) })),
+  ...(data.value?.regions ?? []).map((value) => ({ value, label: regionLabel(value) })),
 ])
+
+const coverage = computed(() => {
+  if (data.value?.activeRegion) {
+    return t('pages.RoadDataSetupPage.activeRegion', {
+      region: regionLabel(data.value.activeRegion),
+    })
+  }
+
+  if (data.value) {
+    return t(`pages.RoadDataSetupPage.${data.value.hasRoads ? 'unknownRegion' : 'noRoads'}`)
+  }
+
+  return t(`pages.RoadDataSetupPage.${isError.value ? 'coverageError' : 'loadingCoverage'}`)
+})
+
+const setupMessage = computed(() => {
+  if (active.value && setup.value) {
+    return t(`pages.RoadDataSetupPage.status.${setup.value.status}`, {
+      region: regionLabel(setup.value.region),
+    })
+  }
+
+  if (submitting.value) return t('pages.RoadDataSetupPage.status.submitting')
+  if (submitError.value) return t(`pages.RoadDataSetupPage.errors.${submitError.value}`)
+  if (setup.value?.status === 'failed') {
+    return t(`pages.RoadDataSetupPage.errors.${setup.value.failure ?? 'submitFailed'}`, {
+      region: regionLabel(setup.value.region),
+    })
+  }
+
+  return ''
+})
+
+watch(
+  setup,
+  (job) => {
+    if (job && (active.value || (job.status === 'failed' && !region.value))) {
+      region.value = job.region
+    }
+  },
+  { immediate: true },
+)
+
+const prepare = () => {
+  if (region.value && canPrepare.value) submit(region.value)
+}
 </script>
 
 <template>
@@ -38,17 +88,21 @@ const options = computed(() => [
 
       <section class="coverage" aria-labelledby="road-data-coverage-heading">
         <h2 id="road-data-coverage-heading">{{ t('pages.RoadDataSetupPage.coverage') }}</h2>
-        <p>{{ t('pages.RoadDataSetupPage.activeRegion') }}</p>
+        <p role="status">{{ coverage }}</p>
       </section>
 
-      <div class="prepare">
+      <form class="prepare" @submit.prevent="prepare">
         <FormField class="region-field" :label="t('pages.RoadDataSetupPage.region')">
-          <SelectField v-model="region" :options="options" />
+          <SelectField v-model="region" :options="options" :disabled="!data || busy" />
         </FormField>
-        <button type="button" disabled>
-          {{ t('pages.RoadDataSetupPage.download') }}
+        <button type="submit" :disabled="!canPrepare">
+          {{ actionLabel }}
         </button>
-      </div>
+        <p class="setup-status" role="status">
+          <LoaderCircle v-if="busy" class="spinner" :size="16" aria-hidden="true" />
+          {{ setupMessage }}
+        </p>
+      </form>
     </div>
   </main>
 </template>
@@ -123,9 +177,43 @@ button {
   padding: var(--space-sm) var(--space-md);
   border: 0;
   border-radius: var(--radius-md);
-  background: var(--color-primary-disabled);
-  color: var(--color-body);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font: var(--font-button);
+  cursor: pointer;
+}
+
+button:enabled:active {
+  background: var(--color-primary-active);
+}
+
+button:disabled {
+  background: var(--color-primary-disabled);
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.setup-status {
+  font: var(--font-body-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.spinner {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 :focus-visible {

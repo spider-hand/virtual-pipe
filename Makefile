@@ -11,12 +11,11 @@ down:
 	docker compose down
 
 osm\:download:
-	@sh osm/region.sh
-	docker compose run --build --rm --no-deps -e REGION osm sh download.sh
+	docker compose run --build --rm --no-deps -e REGION worker uv run --locked python manage.py road_data download
 
 osm\:import:
-	@sh osm/region.sh
-	docker compose run --build --rm -e REGION osm sh import.sh
+	docker compose up --detach --wait db
+	docker compose run --build --rm --no-deps -e REGION worker uv run --locked python manage.py road_data import
 
 client\:format:
 	pnpm --dir client format
