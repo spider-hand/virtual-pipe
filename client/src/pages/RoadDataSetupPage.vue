@@ -21,8 +21,8 @@ const regions = [
 ] as const
 const region = ref<(typeof regions)[number] | ''>('')
 const options = computed(() => [
-  { value: '' as const, label: t('components.RoadDataSetup.selectRegion'), disabled: true },
-  ...regions.map((value) => ({ value, label: t(`components.RoadDataSetup.regions.${value}`) })),
+  { value: '' as const, label: t('pages.RoadDataSetupPage.selectRegion'), disabled: true },
+  ...regions.map((value) => ({ value, label: t(`pages.RoadDataSetupPage.regions.${value}`) })),
 ])
 </script>
 
@@ -31,22 +31,22 @@ const options = computed(() => [
     <div class="content">
       <RouterLink class="back-link" :to="{ name: 'map' }">
         <ArrowLeft :size="16" aria-hidden="true" />
-        {{ t('components.RoadDataSetup.back') }}
+        {{ t('pages.RoadDataSetupPage.back') }}
       </RouterLink>
 
-      <h1>{{ t('components.RoadDataSetup.title') }}</h1>
+      <h1>{{ t('pages.RoadDataSetupPage.title') }}</h1>
 
       <section class="coverage" aria-labelledby="road-data-coverage-heading">
-        <h2 id="road-data-coverage-heading">{{ t('components.RoadDataSetup.coverage') }}</h2>
-        <p>{{ t('components.RoadDataSetup.activeRegion') }}</p>
+        <h2 id="road-data-coverage-heading">{{ t('pages.RoadDataSetupPage.coverage') }}</h2>
+        <p>{{ t('pages.RoadDataSetupPage.activeRegion') }}</p>
       </section>
 
       <div class="prepare">
-        <FormField class="region-field" :label="t('components.RoadDataSetup.region')">
+        <FormField class="region-field" :label="t('pages.RoadDataSetupPage.region')">
           <SelectField v-model="region" :options="options" />
         </FormField>
         <button type="button" disabled>
-          {{ t('components.RoadDataSetup.download') }}
+          {{ t('pages.RoadDataSetupPage.download') }}
         </button>
       </div>
     </div>

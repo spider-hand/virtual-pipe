@@ -2,8 +2,10 @@ import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import type { MapOptions } from 'maplibre-gl'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import Map from '@/components/Map.vue'
+import App from '@/App.vue'
 import PipeSidebar from '@/components/PipeSidebar.vue'
+import MapPage from '@/pages/MapPage.vue'
+import { router } from '@/router'
 import { createTestPlugins } from '@/__tests__/testSetup'
 
 const newest = { id: 'newest', name: 'Newest', bounds: [139.5, 35.4, 139.7, 35.5] }
@@ -41,9 +43,11 @@ vi.mock('maplibre-gl', () => ({
 }))
 
 const mountMap = () =>
-  mount(Map, { global: { plugins: createTestPlugins(), stubs: { RouterLink: RouterLinkStub } } })
+  mount(MapPage, {
+    global: { plugins: createTestPlugins(), stubs: { RouterLink: RouterLinkStub } },
+  })
 
-describe('Map', () => {
+describe('MapPage', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
@@ -133,6 +137,25 @@ describe('Map', () => {
     await picker.setValue(legacy.id)
     expect(fitBounds).toHaveBeenCalledTimes(2)
     expect(setTiles).toHaveBeenLastCalledWith([tileUrl(legacy.id)])
+    wrapper.unmount()
+  })
+
+  it('should keep the selected pipe set and map when returning from road data setup', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([newest, oldest])))
+    await router.push({ name: 'map' })
+    const wrapper = mount(App, { global: { plugins: [...createTestPlugins(), router] } })
+    await flushPromises()
+
+    await wrapper.get('.selector select').setValue(oldest.id)
+    await wrapper.get('a[href="/setup"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('Road data')
+
+    await wrapper.get('a[href="/"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('.selector select').element.value).toBe(oldest.id)
+    expect(createMap).toHaveBeenCalledTimes(1)
+
     wrapper.unmount()
   })
 
