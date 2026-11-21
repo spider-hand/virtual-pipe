@@ -26,7 +26,7 @@ describe('useHealthQuery', () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json({ status: 'ok' }))
     vi.stubGlobal('fetch', fetch)
-    const { data, error, checkHealth } = query
+    const { health, healthError, checkHealth } = query
 
     await checkHealth()
 
@@ -34,8 +34,8 @@ describe('useHealthQuery', () => {
       '/api/health/',
       expect.objectContaining({ method: 'GET' }),
     )
-    expect(data.value).toEqual({ status: 'ok' })
-    expect(error.value).toBeUndefined()
+    expect(health.value).toEqual({ status: 'ok' })
+    expect(healthError.value).toBeUndefined()
   })
 
   it('should expose a failed health request', async () => {
@@ -43,11 +43,11 @@ describe('useHealthQuery', () => {
       'fetch',
       vi.fn<typeof fetch>().mockRejectedValue(new Error('Connection unavailable')),
     )
-    const { data, error, checkHealth } = query
+    const { health, healthError, checkHealth } = query
 
     await checkHealth()
 
-    expect(data.value).toBeUndefined()
-    expect(error.value).toBeInstanceOf(Error)
+    expect(health.value).toBeUndefined()
+    expect(healthError.value).toBeInstanceOf(Error)
   })
 })

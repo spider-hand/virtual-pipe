@@ -21,8 +21,10 @@ const emit = defineEmits<{
   pipesetReady: [id: string]
 }>()
 const id = useId()
-const { sets, loading, failed } = useAttributeSetsQuery(toRef(() => props.active))
-const { status, busy, submit } = usePipeSetsQuery({
+const { attributeSets, isAttributeSetsFetching, isAttributeSetsError } = useAttributeSetsQuery(
+  toRef(() => props.active),
+)
+const { pipeSetStatus, isPipeSetBusy, createPipeSet } = usePipeSetsQuery({
   onSucceeded: (id) => emit('pipesetReady', id),
 })
 const selectedId = ref('')
@@ -37,17 +39,15 @@ const nameError = computed(() => {
 })
 const options = computed(() => [
   { value: '', label: t('components.PipeSetGenerator.selectSet'), disabled: true },
-  ...sets.value.map(({ id, name }) => ({ value: id, label: name })),
+  ...attributeSets.value.map(({ id, name }) => ({ value: id, label: name })),
 ])
 const areaTypes = ['district', 'prefecture'] as const
 const areaType = ref<(typeof areaTypes)[number]>('district')
 const area = shallowRef<District | Prefecture | null>(null)
 const prefectureSearch = ref('')
-const {
-  prefectures,
-  loading: loadingPrefectures,
-  unavailable: prefecturesUnavailable,
-} = usePrefecturesQuery(toRef(() => props.active))
+const { prefectures, isPrefecturesFetching, isPrefecturesError } = usePrefecturesQuery(
+  toRef(() => props.active),
+)
 const normalizeQuery = (query: string) => query.normalize('NFKC').replace(/\s+/gu, '')
 const prefectureResults = computed(() => {
   const text = prefectureSearch.value
@@ -62,15 +62,19 @@ const prefectureResults = computed(() => {
   const query = normalizeQuery(text)
   return prefectures.value.filter(({ label }) => normalizeQuery(label).includes(query))
 })
-const selectedSet = computed(() => sets.value.find((set) => set.id === selectedId.value))
+const selectedSet = computed(() => attributeSets.value.find((set) => set.id === selectedId.value))
 const saveDisabled = computed(
-  () => busy.value || loading.value || failed.value || !sets.value.length,
+  () =>
+    isPipeSetBusy.value ||
+    isAttributeSetsFetching.value ||
+    isAttributeSetsError.value ||
+    !attributeSets.value.length,
 )
 const setInvalid = computed(
   () => submitAttempted.value && !saveDisabled.value && !selectedSet.value,
 )
 
-watch(sets, () => {
+watch(attributeSets, () => {
   if (!selectedSet.value) selectedId.value = ''
 })
 
@@ -94,7 +98,7 @@ const save = () => {
   if (nameError.value || !selectedSet.value || !area.value) return
 
   submitAttempted.value = false
-  void submit({
+  void createPipeSet({
     name: name.value.trim(),
     attributeSetId: selectedSet.value.id,
     ...(areaType.value === 'district'
@@ -111,7 +115,7 @@ const save = () => {
         <input
           class="text-input"
           v-model="name"
-          :disabled="busy"
+          :disabled="isPipeSetBusy"
           :aria-invalid="Boolean(nameError) || undefined"
           :aria-describedby="nameError ? `${id}-name-error` : undefined"
           required
@@ -134,9 +138,13 @@ const save = () => {
           required
         />
       </FormField>
-      <p v-if="loading" role="status">{{ t('components.PipeSetGenerator.loading') }}</p>
-      <p v-else-if="failed" role="alert">{{ t('components.PipeSetGenerator.loadFailed') }}</p>
-      <p v-else-if="sets.length === 0" role="status">
+      <p v-if="isAttributeSetsFetching" role="status">
+        {{ t('components.PipeSetGenerator.loading') }}
+      </p>
+      <p v-else-if="isAttributeSetsError" role="alert">
+        {{ t('components.PipeSetGenerator.loadFailed') }}
+      </p>
+      <p v-else-if="attributeSets.length === 0" role="status">
         {{ t('components.PipeSetGenerator.empty') }}
       </p>
       <p v-else-if="setInvalid" :id="`${id}-set-error`" class="error" role="alert">
@@ -146,7 +154,7 @@ const save = () => {
 
     <AttributePreview v-if="selectedSet" :attributes="selectedSet.attributes" />
 
-    <fieldset class="area-types" :disabled="busy">
+    <fieldset class="area-types" :disabled="isPipeSetBusy">
       <legend>{{ t('components.PipeSetGenerator.areaType') }}</legend>
       <label v-for="type in areaTypes" :key="type">
         <input v-model="areaType" type="radio" :name="`${id}-area-type`" :value="type" />
@@ -156,7 +164,7 @@ const save = () => {
 
     <DistrictSearch
       v-if="areaType === 'district'"
-      :disabled="busy"
+      :disabled="isPipeSetBusy"
       :selection-required="submitAttempted && !area"
       @select="setArea"
       @clear-selection="setArea(null)"
@@ -165,9 +173,9 @@ const save = () => {
       v-else
       mode="prefecture"
       :results="prefectureResults"
-      :loading="loadingPrefectures"
-      :unavailable="prefecturesUnavailable"
-      :disabled="busy"
+      :loading="isPrefecturesFetching"
+      :unavailable="isPrefecturesError"
+      :disabled="isPipeSetBusy"
       :selection-required="submitAttempted && !area"
       @search="prefectureSearch = $event"
       @clear-search="prefectureSearch = ''"
@@ -178,7 +186,9 @@ const save = () => {
     <button class="save" type="submit" :disabled="saveDisabled">
       {{ t('components.PipeSetGenerator.save') }}
     </button>
-    <p v-if="status !== 'idle'" role="status">{{ t(`components.PipeSetGenerator.${status}`) }}</p>
+    <p v-if="pipeSetStatus !== 'idle'" role="status">
+      {{ t(`components.PipeSetGenerator.${pipeSetStatus}`) }}
+    </p>
   </form>
 </template>
 

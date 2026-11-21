@@ -13,13 +13,13 @@ defineOptions({ name: 'MapPage' })
 const mapTools = useTemplateRef<HTMLDivElement>('mapTools')
 const topControls = useTemplateRef<HTMLDivElement>('topControls')
 const sidebarOpen = ref(true)
-const { sets, loading, failed, load } = usePipeSetsQuery()
+const { pipeSets, isPipeSetsFetching, isPipeSetsError, loadPipeSets } = usePipeSetsQuery()
 const selectedId = ref('')
-const selectedSet = computed(() => sets.value.find(({ id }) => id === selectedId.value))
+const selectedSet = computed(() => pipeSets.value.find(({ id }) => id === selectedId.value))
 const areaBounds = shallowRef<number[] | null>(null)
 
 const refreshPipeSets = async (preferredId?: string) => {
-  const result = await load()
+  const result = await loadPipeSets()
   if (!result) return
 
   const target = preferredId ?? selectedId.value
@@ -70,9 +70,9 @@ onMounted(() => {
         <PipeSetSelector
           v-model="selectedId"
           class="selector"
-          :sets="sets"
-          :loading="loading"
-          :failed="failed"
+          :sets="pipeSets"
+          :loading="isPipeSetsFetching"
+          :failed="isPipeSetsError"
         />
       </div>
       <PipeSidebar

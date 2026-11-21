@@ -26,6 +26,7 @@ A local tool that generates synthetic pipe datasets from OpenStreetMap roads. Us
 - Do not assert child-component internals from parent or page tests unless the parent is explicitly responsible for the output.
 - Always use `it.each(...)` when multiple meaningful inputs exercise the same behavior.
 - Always use a composable for server communication instead of calling `fetch` directly.
+- Always use resource-qualified names for exposed composable values and actions, retaining those names in consumers. Preserve TanStack state terminology (e.g., `isAttributeSetsFetching`, `isAttributeSetPending`, `isAttributeSetError`), use resource nouns for data and verb-resource names for actions, and qualify derived state or distinct operations by their meaning.
 - If the composable manages API response state, name it `use{ApiName}Query.ts` (e.g., `useUserQuery.ts`).
 - Do not manually modify files inside `client/src/services/`.
 - Always update locale entries for all supported languages (Japanese and English) whenever user-facing text in `client/src` is added, changed, or removed.

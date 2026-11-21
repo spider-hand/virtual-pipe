@@ -10,48 +10,56 @@ import { useRoadDataQuery } from '@/composables/useRoadDataQuery'
 import type { RoadDataRegionEnum } from '@/services'
 
 const { t } = useI18n()
-const { data, isError, submit, submitting, submitError, active } = useRoadDataQuery()
+const {
+  roadData,
+  isRoadDataError,
+  createRoadDataSetup,
+  isRoadDataSetupPending,
+  roadDataSetupError,
+  isRoadDataSetupActive,
+} = useRoadDataQuery()
 const region = ref<RoadDataRegionEnum | ''>('')
-const setup = computed(() => data.value?.setup)
-const busy = computed(() => active.value || submitting.value)
-const selectedIsActive = computed(() => region.value === data.value?.activeRegion)
+const setup = computed(() => roadData.value?.setup)
+const busy = computed(() => isRoadDataSetupActive.value || isRoadDataSetupPending.value)
+const selectedIsActive = computed(() => region.value === roadData.value?.activeRegion)
 const canPrepare = computed(() => !!region.value && !busy.value && !selectedIsActive.value)
 const actionLabel = computed(() => {
   if (selectedIsActive.value) return t('pages.RoadDataSetupPage.alreadyActive')
 
-  return region.value && data.value?.cachedRegions.includes(region.value)
+  return region.value && roadData.value?.cachedRegions.includes(region.value)
     ? t('pages.RoadDataSetupPage.activate')
     : t('pages.RoadDataSetupPage.download')
 })
 const regionLabel = (value: RoadDataRegionEnum) => t(`pages.RoadDataSetupPage.regions.${value}`)
 const options = computed(() => [
   { value: '' as const, label: t('pages.RoadDataSetupPage.selectRegion'), disabled: true },
-  ...(data.value?.regions ?? []).map((value) => ({ value, label: regionLabel(value) })),
+  ...(roadData.value?.regions ?? []).map((value) => ({ value, label: regionLabel(value) })),
 ])
 
 const coverage = computed(() => {
-  if (data.value?.activeRegion) {
+  if (roadData.value?.activeRegion) {
     return t('pages.RoadDataSetupPage.activeRegion', {
-      region: regionLabel(data.value.activeRegion),
+      region: regionLabel(roadData.value.activeRegion),
     })
   }
 
-  if (data.value) {
-    return t(`pages.RoadDataSetupPage.${data.value.hasRoads ? 'unknownRegion' : 'noRoads'}`)
+  if (roadData.value) {
+    return t(`pages.RoadDataSetupPage.${roadData.value.hasRoads ? 'unknownRegion' : 'noRoads'}`)
   }
 
-  return t(`pages.RoadDataSetupPage.${isError.value ? 'coverageError' : 'loadingCoverage'}`)
+  return t(`pages.RoadDataSetupPage.${isRoadDataError.value ? 'coverageError' : 'loadingCoverage'}`)
 })
 
 const setupMessage = computed(() => {
-  if (active.value && setup.value) {
+  if (isRoadDataSetupActive.value && setup.value) {
     return t(`pages.RoadDataSetupPage.status.${setup.value.status}`, {
       region: regionLabel(setup.value.region),
     })
   }
 
-  if (submitting.value) return t('pages.RoadDataSetupPage.status.submitting')
-  if (submitError.value) return t(`pages.RoadDataSetupPage.errors.${submitError.value}`)
+  if (isRoadDataSetupPending.value) return t('pages.RoadDataSetupPage.status.submitting')
+  if (roadDataSetupError.value)
+    return t(`pages.RoadDataSetupPage.errors.${roadDataSetupError.value}`)
   if (setup.value?.status === 'failed') {
     return t(`pages.RoadDataSetupPage.errors.${setup.value.failure ?? 'submitFailed'}`, {
       region: regionLabel(setup.value.region),
@@ -64,7 +72,7 @@ const setupMessage = computed(() => {
 watch(
   setup,
   (job) => {
-    if (job && (active.value || (job.status === 'failed' && !region.value))) {
+    if (job && (isRoadDataSetupActive.value || (job.status === 'failed' && !region.value))) {
       region.value = job.region
     }
   },
@@ -72,7 +80,7 @@ watch(
 )
 
 const prepare = () => {
-  if (region.value && canPrepare.value) submit(region.value)
+  if (region.value && canPrepare.value) createRoadDataSetup(region.value)
 }
 </script>
 
@@ -93,7 +101,7 @@ const prepare = () => {
 
       <form class="prepare" @submit.prevent="prepare">
         <FormField class="region-field" :label="t('pages.RoadDataSetupPage.region')">
-          <SelectField v-model="region" :options="options" :disabled="!data || busy" />
+          <SelectField v-model="region" :options="options" :disabled="!roadData || busy" />
         </FormField>
         <button type="submit" :disabled="!canPrepare">
           {{ actionLabel }}

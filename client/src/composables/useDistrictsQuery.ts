@@ -39,10 +39,12 @@ export const useDistrictsQuery = () => {
   onScopeDispose(clear)
 
   return {
-    results: computed(() => (term.value ? (data.value ?? []) : [])),
-    loading: computed(() => debouncing.value || (Boolean(term.value) && isFetching.value)),
-    unavailable: computed(() => Boolean(term.value) && !isFetching.value && isError.value),
-    search,
-    clear,
+    districts: computed(() => (term.value ? (data.value ?? []) : [])),
+    isDistrictsSearching: computed(
+      () => debouncing.value || (Boolean(term.value) && isFetching.value),
+    ),
+    isDistrictsError: computed(() => Boolean(term.value) && !isFetching.value && isError.value),
+    searchDistricts: search,
+    clearDistrictSearch: clear,
   }
 }

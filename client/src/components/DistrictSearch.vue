@@ -5,19 +5,20 @@ import type { District } from '@/services'
 
 defineProps<{ disabled?: boolean; selectionRequired?: boolean }>()
 const emit = defineEmits<{ select: [district: District]; clearSelection: [] }>()
-const { results, loading, unavailable, search, clear } = useDistrictsQuery()
+const { districts, isDistrictsSearching, isDistrictsError, searchDistricts, clearDistrictSearch } =
+  useDistrictsQuery()
 </script>
 
 <template>
   <AreaSearch
     mode="district"
-    :results="results"
-    :loading="loading"
-    :unavailable="unavailable"
+    :results="districts"
+    :loading="isDistrictsSearching"
+    :unavailable="isDistrictsError"
     :disabled="disabled"
     :selection-required="selectionRequired"
-    @search="search"
-    @clear-search="clear"
+    @search="searchDistricts"
+    @clear-search="clearDistrictSearch"
     @select="emit('select', $event)"
     @clear-selection="emit('clearSelection')"
   />

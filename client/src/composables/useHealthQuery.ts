@@ -19,5 +19,5 @@ export const useHealthQuery = () => {
     await refetch()
   }
 
-  return { data, error: computed(() => error.value ?? undefined), checkHealth }
+  return { health: data, healthError: computed(() => error.value ?? undefined), checkHealth }
 }

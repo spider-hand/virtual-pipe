@@ -37,13 +37,13 @@ export const useAttributeSetsQuery = (active: Readonly<Ref<boolean>> | boolean =
   }
 
   return {
-    sets: computed(() => data.value ?? []),
-    loading: isFetching,
-    failed: isError,
-    create,
-    saved: computed(() => savedSet.value ?? null),
-    saving: isPending,
-    createFailed,
-    clearSaved,
+    attributeSets: computed(() => data.value ?? []),
+    isAttributeSetsFetching: isFetching,
+    isAttributeSetsError: isError,
+    createAttributeSet: create,
+    attributeSet: computed(() => savedSet.value ?? null),
+    isAttributeSetPending: isPending,
+    isAttributeSetError: createFailed,
+    resetAttributeSet: clearSaved,
   }
 }

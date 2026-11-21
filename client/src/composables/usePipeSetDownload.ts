@@ -35,5 +35,9 @@ export const usePipeSetDownload = () => {
     }
   }
 
-  return { download, pending, failed }
+  return {
+    downloadPipeSet: download,
+    isPipeSetDownloadPending: pending,
+    isPipeSetDownloadError: failed,
+  }
 }

@@ -25,11 +25,11 @@ const formatOptions = computed(() =>
 const id = useId()
 const editor = useTemplateRef<HTMLFormElement>('editor')
 const {
-  create,
-  saved,
-  saving: creating,
-  createFailed: failed,
-  clearSaved,
+  createAttributeSet,
+  attributeSet,
+  isAttributeSetPending,
+  isAttributeSetError,
+  resetAttributeSet,
 } = useAttributeSetsQuery()
 const submitAttempted = ref(false)
 
@@ -195,13 +195,13 @@ const persist = handleSubmit(async (draft) => {
     }
   })
 
-  await create({ name: draft.setName.trim(), attributes })
+  await createAttributeSet({ name: draft.setName.trim(), attributes })
 })
 
-const saving = computed(() => isSubmitting.value || creating.value)
+const saving = computed(() => isSubmitting.value || isAttributeSetPending.value)
 
 const submit = async () => {
-  if (saving.value || saved.value) return
+  if (saving.value || attributeSet.value) return
 
   submitAttempted.value = true
   await persist()
@@ -210,7 +210,7 @@ const submit = async () => {
 const startNew = async () => {
   submitAttempted.value = false
   resetForm()
-  clearSaved()
+  resetAttributeSet()
   await nextTick()
   editor.value?.querySelector('input')?.focus()
 }
@@ -220,7 +220,7 @@ const focusName = (key: string | number) => {
 }
 
 const addRow = async () => {
-  clearSaved()
+  resetAttributeSet()
   push(createRow())
   await nextTick()
 
@@ -229,7 +229,7 @@ const addRow = async () => {
 }
 
 const removeRow = async (index: number) => {
-  clearSaved()
+  resetAttributeSet()
   remove(index)
   await nextTick()
 
@@ -242,7 +242,12 @@ const removeRow = async (index: number) => {
 <template>
   <form ref="editor" class="editor" @submit.prevent="submit">
     <div class="editor-body">
-      <fieldset class="editor-fields" :disabled="saving" @input="clearSaved" @change="clearSaved">
+      <fieldset
+        class="editor-fields"
+        :disabled="saving"
+        @input="resetAttributeSet"
+        @change="resetAttributeSet"
+      >
         <FormField :label="t('components.AttributeSetEditor.setName')">
           <input
             class="text-input"
@@ -366,14 +371,16 @@ const removeRow = async (index: number) => {
     </div>
 
     <footer>
-      <template v-if="saved">
+      <template v-if="attributeSet">
         <p role="status">{{ t('components.AttributeSetEditor.saveSuccess') }}</p>
         <button class="save" type="button" @click="startNew">
           {{ t('components.AttributeSetEditor.newSet') }}
         </button>
       </template>
       <template v-else>
-        <p v-if="failed" role="alert">{{ t('components.AttributeSetEditor.saveFailed') }}</p>
+        <p v-if="isAttributeSetError" role="alert">
+          {{ t('components.AttributeSetEditor.saveFailed') }}
+        </p>
         <button class="save" type="submit" :disabled="saving">
           {{
             saving

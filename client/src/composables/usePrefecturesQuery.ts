@@ -15,7 +15,7 @@ export const usePrefecturesQuery = (active: Readonly<Ref<boolean>>) => {
 
   return {
     prefectures: computed(() => data.value ?? []),
-    loading: isFetching,
-    unavailable: isError,
+    isPrefecturesFetching: isFetching,
+    isPrefecturesError: isError,
   }
 }

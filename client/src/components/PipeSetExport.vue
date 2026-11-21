@@ -15,7 +15,7 @@ const formats = [
   { value: 'csv', label: 'CSV' },
   { value: 'parquet', label: 'Parquet' },
 ] as const
-const { download, pending, failed } = usePipeSetDownload()
+const { downloadPipeSet, isPipeSetDownloadPending, isPipeSetDownloadError } = usePipeSetDownload()
 const format = ref<(typeof formats)[number]['value']>('csv')
 </script>
 
@@ -38,13 +38,15 @@ const format = ref<(typeof formats)[number]['value']>('csv')
     <div class="download">
       <button
         type="button"
-        :disabled="!selectedSet || pending"
-        @click="selectedSet && download(selectedSet.id, format)"
+        :disabled="!selectedSet || isPipeSetDownloadPending"
+        @click="selectedSet && downloadPipeSet(selectedSet.id, format)"
       >
         {{ t('components.PipeSetExport.action') }}
       </button>
-      <p v-if="pending" role="status">{{ t('components.PipeSetExport.preparing') }}</p>
-      <p v-if="failed" role="alert">{{ t('components.PipeSetExport.failed') }}</p>
+      <p v-if="isPipeSetDownloadPending" role="status">
+        {{ t('components.PipeSetExport.preparing') }}
+      </p>
+      <p v-if="isPipeSetDownloadError" role="alert">{{ t('components.PipeSetExport.failed') }}</p>
     </div>
   </div>
 </template>

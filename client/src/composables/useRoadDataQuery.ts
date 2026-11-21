@@ -48,11 +48,11 @@ export const useRoadDataQuery = () => {
   })
 
   return {
-    data,
-    isError,
-    submit,
-    submitting,
-    submitError,
-    active: computed(() => isActive(data.value?.setup)),
+    roadData: data,
+    isRoadDataError: isError,
+    createRoadDataSetup: submit,
+    isRoadDataSetupPending: submitting,
+    roadDataSetupError: submitError,
+    isRoadDataSetupActive: computed(() => isActive(data.value?.setup)),
   }
 }

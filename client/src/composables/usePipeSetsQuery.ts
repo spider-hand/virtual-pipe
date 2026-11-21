@@ -84,12 +84,12 @@ export const usePipeSetsQuery = ({ onSucceeded }: { onSucceeded?: (id: string) =
   onScopeDispose(() => controller.abort())
 
   return {
-    sets: computed(() => data.value ?? []),
-    loading: isFetching,
-    failed: isError,
-    load,
-    status,
-    busy,
-    submit,
+    pipeSets: computed(() => data.value ?? []),
+    isPipeSetsFetching: isFetching,
+    isPipeSetsError: isError,
+    loadPipeSets: load,
+    pipeSetStatus: status,
+    isPipeSetBusy: busy,
+    createPipeSet: submit,
   }
 }

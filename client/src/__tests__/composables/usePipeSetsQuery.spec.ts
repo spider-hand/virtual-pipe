@@ -48,11 +48,11 @@ describe('usePipeSetsQuery', () => {
       )
       .mockResolvedValueOnce(Response.json({ id, status: 'succeeded' }))
 
-    const submitting = query.submit(selection)
-    expect(query.busy.value).toBe(true)
-    await query.submit(selection)
+    const submitting = query.createPipeSet(selection)
+    expect(query.isPipeSetBusy.value).toBe(true)
+    await query.createPipeSet(selection)
     await submitting
-    await query.submit(selection)
+    await query.createPipeSet(selection)
 
     await vi.advanceTimersByTimeAsync(9_999)
     expect(fetch).toHaveBeenCalledTimes(1)
@@ -68,7 +68,7 @@ describe('usePipeSetsQuery', () => {
     await flushPromises()
     await vi.advanceTimersByTimeAsync(10_000)
     expect(onSucceeded).toHaveBeenCalledExactlyOnceWith(id)
-    expect(query.busy.value).toBe(false)
+    expect(query.isPipeSetBusy.value).toBe(false)
     await vi.advanceTimersByTimeAsync(20_000)
     expect(fetch).toHaveBeenCalledTimes(3)
   })
@@ -77,13 +77,13 @@ describe('usePipeSetsQuery', () => {
     fetch
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
       .mockResolvedValueOnce(Response.json({ id, status: 'pending' }))
-    await query.submit(selection)
+    await query.createPipeSet(selection)
 
     await vi.advanceTimersByTimeAsync(10_000)
-    expect(query.status.value).toBe('statusUnavailable')
-    expect(query.busy.value).toBe(true)
+    expect(query.pipeSetStatus.value).toBe('statusUnavailable')
+    expect(query.isPipeSetBusy.value).toBe(true)
     await vi.advanceTimersByTimeAsync(10_000)
-    expect(query.status.value).toBe('pending')
+    expect(query.pipeSetStatus.value).toBe('pending')
     expect(fetch).toHaveBeenCalledTimes(3)
     expect(fetch.mock.calls.slice(1).map(([url]) => url)).toEqual([
       `/api/pipesets/${id}/`,
@@ -98,18 +98,18 @@ describe('usePipeSetsQuery', () => {
     'should stop checking without displaying pipes when the status is %s',
     async (status, response) => {
       fetch.mockResolvedValueOnce(response())
-      await query.submit(selection)
+      await query.createPipeSet(selection)
       await vi.advanceTimersByTimeAsync(30_000)
 
-      expect(query.status.value).toBe(status)
-      expect(query.busy.value).toBe(false)
+      expect(query.pipeSetStatus.value).toBe(status)
+      expect(query.isPipeSetBusy.value).toBe(false)
       expect(onSucceeded).not.toHaveBeenCalled()
       expect(fetch).toHaveBeenCalledTimes(2)
     },
   )
 
   it('should cancel the scheduled status check on unmount', async () => {
-    await query.submit(selection)
+    await query.createPipeSet(selection)
     scope.stop()
     await vi.advanceTimersByTimeAsync(30_000)
 
@@ -124,7 +124,7 @@ describe('usePipeSetsQuery', () => {
           finishPoll = resolve
         }),
     )
-    await query.submit(selection)
+    await query.createPipeSet(selection)
     await vi.advanceTimersByTimeAsync(10_000)
 
     const [, options] = fetch.mock.calls[1]!
