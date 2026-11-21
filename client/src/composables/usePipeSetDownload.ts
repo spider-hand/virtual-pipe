@@ -19,6 +19,7 @@ export const usePipeSetDownload = () => {
       if (!file.name) throw new Error('Missing download filename')
 
       const url = URL.createObjectURL(file)
+
       const link = document.createElement('a')
       link.href = url
       link.download = file.name

@@ -11,15 +11,21 @@ import type { District, PipeSetSummary, Prefecture } from '@/services'
 defineProps<{ selectedSet?: PipeSetSummary }>()
 
 const { t } = useI18n({ useScope: 'global' })
+
 const open = defineModel<boolean>('open', { required: true })
+
 const emit = defineEmits<{
   areaChange: [area: District | Prefecture | null]
   pipesetReady: [id: string]
 }>()
+
 const tabs = ['attributes', 'generate', 'export'] as const
 const activeTab = ref<(typeof tabs)[number]>('attributes')
+
 const id = useId()
+
 const launcher = useTemplateRef<HTMLButtonElement>('launcher')
+
 const tablist = useTemplateRef<HTMLDivElement>('tablist')
 
 const focusTab = () => {

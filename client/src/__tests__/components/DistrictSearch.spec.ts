@@ -37,11 +37,14 @@ describe('DistrictSearch', () => {
     'should select a district by %s after IME input',
     async (method) => {
       vi.useFakeTimers()
+
       const fetch = vi
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(Response.json([districtResponse]))
       vi.stubGlobal('fetch', fetch)
+
       const wrapper = mount(DistrictSearch, { global: { plugins: createTestPlugins() } })
+
       const input = wrapper.get('input')
 
       await input.trigger('focus')
@@ -72,22 +75,28 @@ describe('DistrictSearch', () => {
 
   it('should keep the latest suggestions when an earlier search finishes last', async () => {
     vi.useFakeTimers()
+
     let completeFirstRequest!: (response: Response) => void
+
     const firstRequest = new Promise<Response>((resolve) => {
       completeFirstRequest = resolve
     })
+
     const latestDistrict = {
       code: '13206',
       label: '東京都 府中市',
       label_en: 'Tokyo Fuchushi',
       bounds: [139.42, 35.64, 139.53, 35.7],
     }
+
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockReturnValueOnce(firstRequest)
       .mockResolvedValueOnce(Response.json([latestDistrict]))
     vi.stubGlobal('fetch', fetch)
+
     const wrapper = mount(DistrictSearch, { global: { plugins: createTestPlugins() } })
+
     const input = wrapper.get('input')
 
     await input.trigger('focus')

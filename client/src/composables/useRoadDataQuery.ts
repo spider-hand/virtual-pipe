@@ -10,12 +10,15 @@ import {
 } from '@/services'
 
 const api = new RoadDataApi(new Configuration({ basePath: '' }))
+
 const queryKey = ['road-data'] as const
+
 const isActive = (setup: RoadData['setup'] | undefined) =>
   setup?.status === 'queued' || setup?.status === 'downloading' || setup?.status === 'importing'
 
 export const useRoadDataQuery = () => {
   const client = useQueryClient()
+
   const { data, isError } = useQuery({
     queryKey,
     queryFn: ({ signal }) => api.getRoadData({ signal, cache: 'no-store' }),

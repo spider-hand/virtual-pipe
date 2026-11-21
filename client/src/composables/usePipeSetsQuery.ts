@@ -4,15 +4,20 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { Configuration, PipesetsApi, ResponseError, type PipeSetCreate } from '@/services'
 
 const api = new PipesetsApi(new Configuration({ basePath: '' }))
+
 const pipeSetsKey = ['pipeSets'] as const
 const pipeSetsListKey = [...pipeSetsKey, 'list'] as const
+
 const pipeSetStatusKey = (id: string) => [...pipeSetsKey, 'status', id] as const
+
 const pollInterval = 10_000
+
 const isNotFound = (error: unknown) =>
   error instanceof ResponseError && error.response.status === 404
 
 export const usePipeSetsQuery = ({ onSucceeded }: { onSucceeded?: (id: string) => void } = {}) => {
   const client = useQueryClient()
+
   const { data, isFetching, isError, refetch } = useQuery({
     queryKey: pipeSetsListKey,
     queryFn: ({ signal }) => api.listPipeSets({ signal, cache: 'no-store' }),
@@ -21,11 +26,13 @@ export const usePipeSetsQuery = ({ onSucceeded }: { onSucceeded?: (id: string) =
 
   const load = async () => {
     if (isFetching.value) void client.cancelQueries({ queryKey: pipeSetsListKey })
+
     const result = await refetch()
     if (result.isSuccess) return result.data
   }
 
   const id = ref('')
+
   const controller = new AbortController()
 
   const {

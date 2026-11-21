@@ -10,6 +10,7 @@ const coverage = {
   has_roads: true,
   active_region: 'kanto',
 }
+
 const job = { id: 1, region: 'shikoku', failure: null }
 
 const mountPage = () =>
@@ -54,6 +55,7 @@ describe('RoadDataSetupPage', () => {
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(Response.json({ ...coverage, setup: null })),
     )
+
     const wrapper = mountPage()
     await flushPromises()
     await wrapper.get('select').setValue(region)
@@ -74,6 +76,7 @@ describe('RoadDataSetupPage', () => {
           Response.json({ ...coverage, active_region: 'shikoku', setup: null }),
         ),
     )
+
     const wrapper = mountPage()
     await flushPromises()
     await wrapper.get('select').setValue('shikoku')

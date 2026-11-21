@@ -22,8 +22,10 @@ const props = defineProps<{
 }>()
 
 const container = useTemplateRef<HTMLDivElement>('container')
+
 const osmAttribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+
 let map: MapLibreMap | undefined
 let mapReady = false
 
@@ -53,6 +55,7 @@ const showPipeSet = () => {
   const tiles = [
     `${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${encodeURIComponent(id)}`,
   ]
+
   const source = map.getSource<VectorTileSource>('pipes')
 
   if (source) {

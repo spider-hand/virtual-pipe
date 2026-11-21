@@ -4,10 +4,12 @@ import { computed, type Ref } from 'vue'
 import { AttributeSetsApi, Configuration, type AttributeSetCreate } from '@/services'
 
 const api = new AttributeSetsApi(new Configuration({ basePath: '' }))
+
 const attributeSetsKey = ['attributeSets'] as const
 
 export const useAttributeSetsQuery = (active: Readonly<Ref<boolean>> | boolean = false) => {
   const client = useQueryClient()
+
   const { data, isFetching, isError } = useQuery({
     queryKey: attributeSetsKey,
     queryFn: ({ signal }) => api.listAttributeSets({ signal }),

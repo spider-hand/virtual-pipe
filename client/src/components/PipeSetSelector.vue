@@ -7,8 +7,11 @@ import SelectField from '@/components/SelectField.vue'
 import type { PipeSetSummary } from '@/services'
 
 const props = defineProps<{ sets: PipeSetSummary[]; loading: boolean; failed: boolean }>()
+
 const selectedId = defineModel<string>({ required: true })
+
 const { t } = useI18n({ useScope: 'global' })
+
 const options = computed(() =>
   props.sets.length
     ? props.sets.map(({ id, name }) => ({ value: id, label: name }))

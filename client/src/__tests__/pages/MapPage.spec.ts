@@ -11,6 +11,7 @@ import { createTestPlugins } from '@/__tests__/testSetup'
 const newest = { id: 'newest', name: 'Newest', bounds: [139.5, 35.4, 139.7, 35.5] }
 const oldest = { id: 'oldest', name: 'Oldest', bounds: [130.5, 34.4, 130.7, 34.5] }
 const legacy = { id: 'legacy', name: 'Legacy', bounds: null }
+
 const tileUrl = (id: string) => `${window.location.origin}/tiles/pipes/{z}/{x}/{y}?pipeset_id=${id}`
 
 const { fitBounds, setData, setTiles, createMap, onLoad, addSource, addLayer } = vi.hoisted(() => ({
@@ -61,12 +62,15 @@ describe('MapPage', () => {
     'should fit and highlight the chosen %s until the search text is edited',
     async (areaType) => {
       vi.useFakeTimers()
+
       const bounds = [139.5, 35.4, 139.7, 35.5]
+
       const result = {
         code: areaType === 'district' ? '14104' : '14',
         label: areaType === 'district' ? '神奈川県 横浜市 中区' : '神奈川県',
         bounds,
       }
+
       const fetch = vi
         .fn<typeof globalThis.fetch>()
         .mockResolvedValueOnce(Response.json([]))
@@ -76,12 +80,14 @@ describe('MapPage', () => {
       vi.stubGlobal('fetch', fetch)
 
       const wrapper = mountMap()
+
       const panel = wrapper.get('[role="tabpanel"]:has([role="combobox"])')
       expect(panel.isVisible()).toBe(false)
       await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
       if (areaType === 'prefecture') {
         await wrapper.get('input[value="prefecture"]').setValue()
       }
+
       const input = wrapper.get('input[role="combobox"]')
 
       await input.trigger('focus')
@@ -118,8 +124,10 @@ describe('MapPage', () => {
       'fetch',
       vi.fn<typeof fetch>().mockResolvedValue(Response.json([newest, oldest, legacy])),
     )
+
     const wrapper = mountMap()
     await flushPromises()
+
     const picker = wrapper.get('.selector select')
 
     expect(picker.element.value).toBe(newest.id)
@@ -159,6 +167,7 @@ describe('MapPage', () => {
       ),
     )
     await router.push({ name: 'map' })
+
     const wrapper = mount(App, { global: { plugins: [...createTestPlugins(), router] } })
     await flushPromises()
 
@@ -177,8 +186,11 @@ describe('MapPage', () => {
 
   it('should load pipes only after generation succeeds, even with the sidebar closed', async () => {
     vi.useFakeTimers()
+
     const id = '7fc19571-3276-49e3-9ef0-4ccb7cd1d599'
+
     const attributeSetId = '4984ce93-5b72-473c-ae9e-950b46d4f9c8'
+
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([]))
@@ -194,6 +206,7 @@ describe('MapPage', () => {
     vi.stubGlobal('fetch', fetch)
 
     const wrapper = mountMap()
+
     const style = createMap.mock.calls[0]![0].style
     expect(style).toMatchObject({ sources: { basemap: { type: 'raster' } } })
     expect(style && typeof style === 'object' && style.sources).not.toHaveProperty('pipes')
@@ -201,11 +214,15 @@ describe('MapPage', () => {
 
     await wrapper.get('[role="tab"][aria-controls$="-generate"]').trigger('click')
     await flushPromises()
+
     const picker = wrapper.get('.selector select')
     expect(picker.element.disabled).toBe(true)
     expect(picker.text()).toBe('No pipe sets yet')
+
     const select = wrapper.get('.generator select')
+
     const name = wrapper.get('.generator input[required]')
+
     const search = wrapper.get('input[role="combobox"]')
     await name.setValue('Demo mains')
     await select.setValue(attributeSetId)
@@ -213,6 +230,7 @@ describe('MapPage', () => {
     await search.setValue('横浜')
     await vi.advanceTimersByTimeAsync(200)
     await wrapper.get('[role="option"]').trigger('click')
+
     const save = wrapper.get('.generator button')
     await wrapper.get('form.generator').trigger('submit')
     await flushPromises()
@@ -259,6 +277,7 @@ describe('MapPage', () => {
     const wrapper = mountMap()
     await flushPromises()
     onLoad.mock.calls[0]![1]()
+
     const picker = wrapper.get('.selector select')
 
     wrapper.getComponent(PipeSidebar).vm.$emit('pipesetReady', newest.id)

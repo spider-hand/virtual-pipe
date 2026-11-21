@@ -6,7 +6,9 @@ import { RouterLink } from 'vue-router'
 import { useRoadDataQuery } from '@/composables/useRoadDataQuery'
 
 const { t } = useI18n()
+
 const { roadData, isRoadDataError } = useRoadDataQuery()
+
 const regionStatus = computed(() => {
   if (roadData.value?.activeRegion) {
     return t(`components.RoadDataStatus.regions.${roadData.value.activeRegion}`)

@@ -7,6 +7,7 @@ import type { AttributeDefinition } from '@/services'
 defineProps<{ attributes: AttributeDefinition[] }>()
 
 const { t } = useI18n({ useScope: 'global' })
+
 const id = useId()
 
 const details = (attribute: AttributeDefinition) => {

@@ -15,40 +15,55 @@ import { isLatinQuery, normalizeLatinQuery } from '@/utils/areaSearch'
 import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
+
 const props = defineProps<{ active: boolean }>()
+
 const emit = defineEmits<{
   areaChange: [area: District | Prefecture | null]
   pipesetReady: [id: string]
 }>()
+
 const id = useId()
+
 const { attributeSets, isAttributeSetsFetching, isAttributeSetsError } = useAttributeSetsQuery(
   toRef(() => props.active),
 )
+
 const { pipeSetStatus, isPipeSetBusy, createPipeSet } = usePipeSetsQuery({
   onSucceeded: (id) => emit('pipesetReady', id),
 })
+
 const selectedId = ref('')
+
 const name = ref('')
 const nameTouched = ref(false)
+
 const submitAttempted = ref(false)
+
 const nameError = computed(() => {
   const error = getSetNameError(name.value, nameTouched.value)
   if (error === 'required') return t('components.PipeSetGenerator.nameRequired')
   if (error === 'tooLong') return t('components.PipeSetGenerator.nameTooLong')
   return undefined
 })
+
 const options = computed(() => [
   { value: '', label: t('components.PipeSetGenerator.selectSet'), disabled: true },
   ...attributeSets.value.map(({ id, name }) => ({ value: id, label: name })),
 ])
+
 const areaTypes = ['district', 'prefecture'] as const
 const areaType = ref<(typeof areaTypes)[number]>('district')
 const area = shallowRef<District | Prefecture | null>(null)
+
 const prefectureSearch = ref('')
+
 const { prefectures, isPrefecturesFetching, isPrefecturesError } = usePrefecturesQuery(
   toRef(() => props.active),
 )
+
 const normalizeQuery = (query: string) => query.normalize('NFKC').replace(/\s+/gu, '')
+
 const prefectureResults = computed(() => {
   const text = prefectureSearch.value
   if (isLatinQuery(text)) {
@@ -62,7 +77,9 @@ const prefectureResults = computed(() => {
   const query = normalizeQuery(text)
   return prefectures.value.filter(({ label }) => normalizeQuery(label).includes(query))
 })
+
 const selectedSet = computed(() => attributeSets.value.find((set) => set.id === selectedId.value))
+
 const saveDisabled = computed(
   () =>
     isPipeSetBusy.value ||

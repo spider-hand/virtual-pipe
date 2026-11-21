@@ -11,6 +11,7 @@ const selectedSet: PipeSetSummary = {
   bounds: null,
   attributeDefinitions: [{ name: 'material', type: 'string', choices: ['Steel', 'PVC'] }],
 }
+
 const legacySet: PipeSetSummary = {
   id: 'legacy',
   name: 'Legacy mains',
@@ -80,6 +81,7 @@ it('should offer CSV and Parquet and keep the chosen format when the pipe set ch
     props: { selectedSet },
     global: { plugins: createTestPlugins() },
   })
+
   const format = wrapper.get('select')
 
   expect(format.element.disabled).toBe(false)
@@ -95,13 +97,17 @@ it('should offer CSV and Parquet and keep the chosen format when the pipe set ch
 
 it('should download the selected format using the server filename', async () => {
   let respond!: (response: Response) => void
+
   const request = vi.fn<typeof fetch>(() => new Promise((resolve) => (respond = resolve)))
   vi.stubGlobal('fetch', request)
+
   const downloaded = observeDownload()
+
   const wrapper = mount(PipeSetExport, {
     props: { selectedSet },
     global: { plugins: createTestPlugins() },
   })
+
   const button = wrapper.get('button')
 
   await wrapper.get('select').setValue('parquet')
@@ -140,11 +146,14 @@ it('should let users retry a failed download', async () => {
       }),
     )
   vi.stubGlobal('fetch', request)
+
   const downloaded = observeDownload()
+
   const wrapper = mount(PipeSetExport, {
     props: { selectedSet },
     global: { plugins: createTestPlugins() },
   })
+
   const button = wrapper.get('button')
 
   await button.trigger('click')

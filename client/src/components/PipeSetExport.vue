@@ -11,11 +11,14 @@ import type { PipeSetSummary } from '@/services'
 defineProps<{ selectedSet?: PipeSetSummary }>()
 
 const { t } = useI18n({ useScope: 'global' })
+
 const formats = [
   { value: 'csv', label: 'CSV' },
   { value: 'parquet', label: 'Parquet' },
 ] as const
+
 const { downloadPipeSet, isPipeSetDownloadPending, isPipeSetDownloadError } = usePipeSetDownload()
+
 const format = ref<(typeof formats)[number]['value']>('csv')
 </script>
 

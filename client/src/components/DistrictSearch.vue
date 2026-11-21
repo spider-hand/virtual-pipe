@@ -4,7 +4,9 @@ import { useDistrictsQuery } from '@/composables/useDistrictsQuery'
 import type { District } from '@/services'
 
 defineProps<{ disabled?: boolean; selectionRequired?: boolean }>()
+
 const emit = defineEmits<{ select: [district: District]; clearSelection: [] }>()
+
 const { districts, isDistrictsSearching, isDistrictsError, searchDistricts, clearDistrictSearch } =
   useDistrictsQuery()
 </script>

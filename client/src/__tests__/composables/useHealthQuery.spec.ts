@@ -8,10 +8,12 @@ import { createQueryClient } from '@/queryClient'
 
 describe('useHealthQuery', () => {
   let scope: ReturnType<typeof effectScope>
+
   let query: ReturnType<typeof useHealthQuery>
 
   beforeEach(() => {
     scope = effectScope()
+
     const app = createApp({}).use(VueQueryPlugin, { queryClient: createQueryClient() })
     query = app.runWithContext(() => scope.run(useHealthQuery)!)
   })
@@ -26,6 +28,7 @@ describe('useHealthQuery', () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json({ status: 'ok' }))
     vi.stubGlobal('fetch', fetch)
+
     const { health, healthError, checkHealth } = query
 
     await checkHealth()
@@ -43,6 +46,7 @@ describe('useHealthQuery', () => {
       'fetch',
       vi.fn<typeof fetch>().mockRejectedValue(new Error('Connection unavailable')),
     )
+
     const { health, healthError, checkHealth } = query
 
     await checkHealth()

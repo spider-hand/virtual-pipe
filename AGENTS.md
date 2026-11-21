@@ -18,6 +18,7 @@ A local tool that generates synthetic pipe datasets from OpenStreetMap roads. Us
 
 ### Frontend
 
+- Separate declarations with one blank line by default. Keep adjacent declarations together only when they are closely related simple constants, refs, or computed values describing the same state.
 - Always use arrow functions unless there is a specific reason to avoid them.
 - Always use `@` alias instead of relative paths for imports within `client/src`.
 - Mirror paths relative to `client/src/` under `client/src/__tests__/`. For example, place tests for `components/Map.vue` in `__tests__/components/Map.spec.ts`.

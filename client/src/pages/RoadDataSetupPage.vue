@@ -10,6 +10,7 @@ import { useRoadDataQuery } from '@/composables/useRoadDataQuery'
 import type { RoadDataRegionEnum } from '@/services'
 
 const { t } = useI18n()
+
 const {
   roadData,
   isRoadDataError,
@@ -18,11 +19,15 @@ const {
   roadDataSetupError,
   isRoadDataSetupActive,
 } = useRoadDataQuery()
+
 const region = ref<RoadDataRegionEnum | ''>('')
+
 const setup = computed(() => roadData.value?.setup)
 const busy = computed(() => isRoadDataSetupActive.value || isRoadDataSetupPending.value)
+
 const selectedIsActive = computed(() => region.value === roadData.value?.activeRegion)
 const canPrepare = computed(() => !!region.value && !busy.value && !selectedIsActive.value)
+
 const actionLabel = computed(() => {
   if (selectedIsActive.value) return t('pages.RoadDataSetupPage.alreadyActive')
 
@@ -30,7 +35,9 @@ const actionLabel = computed(() => {
     ? t('pages.RoadDataSetupPage.activate')
     : t('pages.RoadDataSetupPage.download')
 })
+
 const regionLabel = (value: RoadDataRegionEnum) => t(`pages.RoadDataSetupPage.regions.${value}`)
+
 const options = computed(() => [
   { value: '' as const, label: t('pages.RoadDataSetupPage.selectRegion'), disabled: true },
   ...(roadData.value?.regions ?? []).map((value) => ({ value, label: regionLabel(value) })),

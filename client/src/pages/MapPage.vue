@@ -11,11 +11,16 @@ import type { District, Prefecture } from '@/services'
 defineOptions({ name: 'MapPage' })
 
 const mapTools = useTemplateRef<HTMLDivElement>('mapTools')
+
 const topControls = useTemplateRef<HTMLDivElement>('topControls')
+
 const sidebarOpen = ref(true)
+
 const { pipeSets, isPipeSetsFetching, isPipeSetsError, loadPipeSets } = usePipeSetsQuery()
+
 const selectedId = ref('')
 const selectedSet = computed(() => pipeSets.value.find(({ id }) => id === selectedId.value))
+
 const areaBounds = shallowRef<number[] | null>(null)
 
 const refreshPipeSets = async (preferredId?: string) => {
@@ -34,6 +39,7 @@ const getFitPadding = (width: number, height: number) => {
   const sidebar = mapTools.value?.querySelector('aside')?.getBoundingClientRect()
   const sidebarRight = sidebar?.right ?? 0
   const topControlsBottom = topControls.value?.getBoundingClientRect().bottom ?? 0
+
   const fitsBesideSidebar = width - sidebarRight >= 360
   const controlsBottom = fitsBesideSidebar
     ? topControlsBottom

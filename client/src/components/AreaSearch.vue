@@ -18,24 +18,32 @@ const props = defineProps<{
   disabled?: boolean
   selectionRequired?: boolean
 }>()
+
 const emit = defineEmits<{
   select: [area: Area]
   clearSelection: []
   search: [text: string]
   clearSearch: []
 }>()
+
 const message = (key: string) => t(`components.AreaSearch.${props.mode}.${key}`)
+
 const text = ref('')
 const focused = ref(false)
 const composing = ref(false)
 const active = ref(-1)
 const open = ref(false)
+
 const listId = useId()
+
 const expanded = computed(
   () => !props.disabled && focused.value && open.value && props.results.length > 0,
 )
+
 const optionId = (index: number) => `${listId}-${index}`
+
 const showEnglish = computed(() => isLatinQuery(text.value))
+
 const displayLabel = (area: Area) => (showEnglish.value ? (area.labelEn ?? area.label) : area.label)
 
 const update = (event: Event) => {
@@ -78,6 +86,7 @@ const handleKey = (event: KeyboardEvent) => {
     active.value = -1
   } else if (expanded.value && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
     event.preventDefault()
+
     const last = props.results.length - 1
     active.value =
       event.key === 'ArrowDown'

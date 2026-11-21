@@ -7,6 +7,7 @@ import { usePipeSetsQuery } from '@/composables/usePipeSetsQuery'
 import { createQueryClient } from '@/queryClient'
 
 const id = '7fc19571-3276-49e3-9ef0-4ccb7cd1d599'
+
 const selection = {
   name: 'Demo mains',
   districtId: '01404',
@@ -15,8 +16,11 @@ const selection = {
 
 describe('usePipeSetsQuery', () => {
   const onSucceeded = vi.fn<(id: string) => void>()
+
   let scope: ReturnType<typeof effectScope>
+
   let fetch: ReturnType<typeof vi.fn<typeof globalThis.fetch>>
+
   let query: ReturnType<typeof usePipeSetsQuery>
 
   beforeEach(() => {
@@ -27,6 +31,7 @@ describe('usePipeSetsQuery', () => {
       .mockResolvedValueOnce(Response.json({ id }, { status: 202 }))
     vi.stubGlobal('fetch', fetch)
     scope = effectScope()
+
     const app = createApp({}).use(VueQueryPlugin, { queryClient: createQueryClient() })
     query = app.runWithContext(() => scope.run(() => usePipeSetsQuery({ onSucceeded }))!)
   })

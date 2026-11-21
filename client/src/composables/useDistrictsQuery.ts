@@ -4,6 +4,7 @@ import { computed, onScopeDispose, ref } from 'vue'
 import { Configuration, DistrictsApi } from '@/services'
 
 const api = new DistrictsApi(new Configuration({ basePath: '' }))
+
 const districtsKey = ['districts'] as const
 
 export const useDistrictsQuery = () => {

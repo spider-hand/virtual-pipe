@@ -9,6 +9,7 @@ import { createQueryClient } from '@/queryClient'
 describe('PipeSidebar', () => {
   it('should preserve the draft across keyboard tab changes and reopening', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([])))
+
     const wrapper = mount(
       defineComponent({
         components: { PipeSidebar },
@@ -17,7 +18,9 @@ describe('PipeSidebar', () => {
       }),
       { global: { plugins: createTestPlugins() }, attachTo: document.body },
     )
+
     const [attributes, generate] = wrapper.findAll('[role="tab"]')
+
     const name = wrapper.get('[role="tabpanel"][id$="-attributes"] input')
 
     try {
@@ -32,6 +35,7 @@ describe('PipeSidebar', () => {
       expect(name.element.value).toBe('Water mains')
 
       await wrapper.get('button[aria-label="Close pipe tools"]').trigger('click')
+
       const launcher = wrapper.get('button[aria-label="Open pipe tools"]')
       expect(name.isVisible()).toBe(false)
       expect(document.activeElement).toBe(launcher.element)
@@ -47,6 +51,7 @@ describe('PipeSidebar', () => {
   })
   it('should move focus across all three tabs and wrap at both ends', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([])))
+
     const wrapper = mount(PipeSidebar, {
       props: { open: true },
       global: { plugins: createTestPlugins() },
@@ -55,7 +60,9 @@ describe('PipeSidebar', () => {
 
     try {
       const tabs = wrapper.findAll<HTMLButtonElement>('[role="tab"]')
+
       const [attributes, generate, exportTab] = tabs
+
       const steps = [
         [attributes!, 'ArrowLeft', exportTab!],
         [exportTab!, 'ArrowRight', attributes!],
@@ -82,6 +89,7 @@ describe('PipeSidebar', () => {
       name: 'Water mains',
       attributes: [{ name: 'active', type: 'boolean' }],
     }
+
     const request = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json([]))
@@ -89,12 +97,15 @@ describe('PipeSidebar', () => {
       .mockResolvedValueOnce(Response.json(saved, { status: 201 }))
       .mockResolvedValueOnce(Response.json([saved]))
     vi.stubGlobal('fetch', request)
+
     const queryClient = createQueryClient()
+
     const defaults = queryClient.getDefaultOptions()
     queryClient.setDefaultOptions({
       ...defaults,
       queries: { ...defaults.queries, staleTime: Infinity },
     })
+
     const wrapper = mount(PipeSidebar, {
       global: { plugins: createTestPlugins(queryClient) },
       props: { open: true },
@@ -102,6 +113,7 @@ describe('PipeSidebar', () => {
 
     try {
       const [attributes, generate] = wrapper.findAll('[role="tab"]')
+
       const panel = wrapper.get('[role="tabpanel"][id$="-generate"]')
       await generate!.trigger('click')
       await vi.waitFor(() => expect(panel.text()).toContain('Create an attribute set'))

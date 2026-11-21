@@ -11,6 +11,7 @@ import type { AttributeDefinition } from '@/services'
 import { getSetNameError } from '@/utils/validation'
 
 const { t } = useI18n({ useScope: 'global' })
+
 const types = ['string', 'integer', 'decimal', 'boolean', 'date', 'id'] as const
 const idFormats = ['sequential', 'uuid'] as const
 const typeOptions = computed(() =>
@@ -22,8 +23,11 @@ const formatOptions = computed(() =>
     label: t(`components.AttributeSetEditor.idFormats.${value}`),
   })),
 )
+
 const id = useId()
+
 const editor = useTemplateRef<HTMLFormElement>('editor')
+
 const {
   createAttributeSet,
   attributeSet,
@@ -31,6 +35,7 @@ const {
   isAttributeSetError,
   resetAttributeSet,
 } = useAttributeSetsQuery()
+
 const submitAttempted = ref(false)
 
 const emptyDetails = () => ({
@@ -49,6 +54,7 @@ const createRow = () => ({
 })
 
 type Row = ReturnType<typeof createRow>
+
 type Draft = { setName: string; setNameTouched: boolean; rows: Row[] }
 
 const nameRule = (rows: Row[], row: Row, index: number) => {
@@ -73,6 +79,7 @@ const parseChoices = (text: string) =>
 
 const detailsRule = (row: Row) => {
   const { choices, min, max } = row.details
+
   const touched = submitAttempted.value || row.details.touched
   if (row.type === 'boolean' || row.type === 'id') return true
 
@@ -134,6 +141,7 @@ const {
     __type: 'VVTypedSchema',
     parse: (draft: Draft) => {
       const errors: { path: string; errors: string[] }[] = []
+
       const nameError = getSetNameError(
         draft.setName,
         submitAttempted.value || draft.setNameTouched,
@@ -158,6 +166,7 @@ const {
 
       draft.rows.forEach((row, index) => {
         const name = nameRule(draft.rows, row, index)
+
         const details = detailsRule(row)
 
         if (name !== true) errors.push({ path: `rows[${index}].name`, errors: [name] })
@@ -168,7 +177,9 @@ const {
     },
   },
 })
+
 const { fields, push, remove } = useFieldArray<Row>('rows')
+
 const rowError = (index: number, field: 'name' | 'details') =>
   errors.value[`rows[${index}].${field}`]
 

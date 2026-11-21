@@ -13,6 +13,7 @@ const set = {
     { name: 'pipe_id', type: 'id', id_format: 'sequential' },
   ],
 }
+
 const district = {
   code: '01404',
   label: '北海道 神恵内村',
@@ -53,6 +54,7 @@ describe('PipeSetGenerator', () => {
         global: { plugins: createTestPlugins() },
         props: { active: false },
       })
+
       const name = wrapper.get('input[required]')
 
       await name.setValue(value)
@@ -75,6 +77,7 @@ describe('PipeSetGenerator', () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
+
     const wrapper = mount(PipeSetGenerator, {
       global: { plugins: createTestPlugins() },
       props: { active: true },
@@ -93,6 +96,7 @@ describe('PipeSetGenerator', () => {
 
   it('should guide users to create an attribute set when the list is empty', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json([])))
+
     const wrapper = mount(PipeSetGenerator, {
       global: { plugins: createTestPlugins() },
       props: { active: true },
@@ -108,12 +112,14 @@ describe('PipeSetGenerator', () => {
 
   it('should preview definitions in order and keep the selected set when the tab is revisited', async () => {
     const nextSet = { ...set, id: 'cd901b32-52c2-4f2d-a994-6ecd94a66530', name: 'New set' }
+
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
       .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json([nextSet, set]))
     vi.stubGlobal('fetch', fetch)
+
     const wrapper = mount(PipeSetGenerator, {
       global: { plugins: createTestPlugins() },
       props: { active: true },
@@ -149,6 +155,7 @@ describe('PipeSetGenerator', () => {
   it('should validate untouched fields before requesting a save', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json([set]))
     vi.stubGlobal('fetch', fetch)
+
     const wrapper = mount(PipeSetGenerator, {
       global: { plugins: createTestPlugins() },
       props: { active: true },
@@ -178,6 +185,7 @@ describe('PipeSetGenerator', () => {
 
   it('should require a valid name and preserve the form if submission fails', async () => {
     vi.useFakeTimers()
+
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
@@ -185,14 +193,19 @@ describe('PipeSetGenerator', () => {
       .mockResolvedValueOnce(Response.json([district]))
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
     vi.stubGlobal('fetch', fetch)
+
     const wrapper = mount(PipeSetGenerator, {
       global: { plugins: createTestPlugins() },
       props: { active: true },
     })
     await flushPromises()
+
     const select = wrapper.get('select')
+
     const name = wrapper.get('input[required]')
+
     const search = wrapper.get('input[role="combobox"]')
+
     const save = wrapper.get('button.save')
 
     await select.setValue(set.id)
@@ -250,7 +263,9 @@ describe('PipeSetGenerator', () => {
       labelEn: 'Hokkaido',
       bounds: [139, 41, 146, 46],
     }
+
     const other = { code: '02', label: 'テスト県', label_en: 'Test', bounds: [140, 40, 142, 42] }
+
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([set]))
@@ -267,6 +282,7 @@ describe('PipeSetGenerator', () => {
       )
       .mockResolvedValueOnce(Response.json({ id: set.id }, { status: 202 }))
     vi.stubGlobal('fetch', fetch)
+
     const wrapper = mount(PipeSetGenerator, {
       global: { plugins: createTestPlugins() },
       props: { active: false },
@@ -282,6 +298,7 @@ describe('PipeSetGenerator', () => {
     expect(wrapper.find('input[placeholder="Prefecture name"]').exists()).toBe(false)
 
     await wrapper.get('input[value="prefecture"]').setValue()
+
     const search = wrapper.get('input[role="combobox"]')
     await search.trigger('focus')
     expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual([
@@ -311,6 +328,7 @@ describe('PipeSetGenerator', () => {
     await wrapper.get('input[value="district"]').setValue()
     expect(wrapper.emitted('areaChange')).toEqual([[prefecture], [null]])
     await wrapper.get('input[value="prefecture"]').setValue()
+
     const newSearch = wrapper.get('input[role="combobox"]')
     expect(newSearch.element.value).toBe('')
     await newSearch.trigger('focus')

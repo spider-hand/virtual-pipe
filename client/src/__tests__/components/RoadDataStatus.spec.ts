@@ -20,6 +20,7 @@ describe('RoadDataStatus', () => {
           Response.json({ ...coverage, regions: ['shikoku'], cached_regions: [], setup: null }),
         ),
     )
+
     const wrapper = mount(RoadDataStatus, {
       global: { plugins: createTestPlugins(), stubs: { RouterLink: RouterLinkStub } },
     })
